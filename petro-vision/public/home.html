@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fuel Prices | PetroVision</title>
+  <script>
+    (() => {
+      let theme;
+      try {
+        theme = localStorage.getItem("petrovision-theme");
+      } catch {
+        theme = null;
+      }
+      if (theme !== "light" && theme !== "dark") {
+        theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/home.css">
+</head>
+<body class="home-page">
+  <header class="home-navbar">
+    <div class="home-navbar-inner container">
+      <a class="logo" href="home.html" aria-label="PetroVision home">PETRO<span>VISION</span></a>
+      <button class="nav-toggle-button" id="nav-toggle" type="button" aria-label="Open navigation menu" aria-controls="primary-nav" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <nav class="nav-links" id="primary-nav" aria-label="Main navigation">
+        <ul>
+          <li><a class="active" href="home.html" data-section-link="home">Home</a></li>
+          <li><a href="#about" data-section-link="about">About</a></li>
+          <li><a href="#contact" data-section-link="contact">Contact</a></li>
+          <li id="rewards-nav" class="member-nav"><a href="rewards.html">Rewards</a></li>
+          <li>
+            <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch to dark mode" aria-pressed="false">
+              <svg class="theme-icon icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+              <svg class="theme-icon icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.5A8.5 8.5 0 0 1 8.5 3.8 8.5 8.5 0 1 0 20.2 15.5Z"/></svg>
+            </button>
+          </li>
+          <li><a class="profile-link" href="login.html" id="account-link">Login</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="home-main">
+    <section class="price-hero" aria-labelledby="page-title">
+      <img class="hero-image" src="images/hero.webp" alt="Nighttime highway with long-exposure vehicle light trails" fetchpriority="high">
+      <div class="hero-image-overlay" aria-hidden="true"></div>
+      <div class="price-hero-inner container">
+        <div class="price-hero-copy">
+          <h1 id="page-title">Fuel prices,<br><span>at a glance.</span></h1>
+          <p class="hero-value">Find a better price nearby, share a report, and earn rewards.</p>
+          <div class="trust-badges" aria-label="PetroVision benefits">
+            <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>Community-verified</span>
+            <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>Updated live</span>
+            <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>Free to use</span>
+          </div>
+          <div class="hero-actions">
+            <a class="contribute-link" href="login.html" id="contribute-link">Contribute prices <span aria-hidden="true">+</span></a>
+            <a class="view-map-link" href="#station-map">View map <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+        <a class="scroll-cue" href="#compare" aria-label="Scroll down to compare fuel prices">
+          <span>Scroll to compare</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </a>
+      </div>
+      <div class="price-hero-stats-wrap">
+        <div class="price-hero-stats container" aria-label="Live fuel price statistics">
+          <div class="hero-stat">
+            <span>Cheapest diesel</span>
+            <strong class="stat-value" id="stat-diesel" aria-live="polite"></strong>
+          </div>
+          <div class="hero-stat">
+            <span>Cheapest gasoline</span>
+            <strong class="stat-value" id="stat-gasoline" aria-live="polite"></strong>
+          </div>
+          <div class="hero-stat">
+            <span>Stations reporting</span>
+            <strong class="stat-value" id="stat-stations" aria-live="polite"></strong>
+          </div>
+          <div class="hero-stat">
+            <span>Last updated</span>
+            <strong class="stat-value" id="stat-updated" aria-live="polite"></strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="price-explorer container" id="compare" aria-labelledby="prices-title">
+      <div class="price-section-heading">
+        <div>
+          <h2 id="prices-title">Compare station prices</h2>
+          <p>Verified stations and their latest approved fuel reports.</p>
+        </div>
+      </div>
+
+      <div class="price-content-grid">
+        <section class="station-prices-panel explorer-card" aria-labelledby="station-prices-title">
+          <div class="panel-heading">
+            <div>
+              <h3 id="station-prices-title">Station prices</h3>
+              <span class="panel-caption">Lowest prices are marked for each fuel type.</span>
+            </div>
+            <button type="button" class="refresh-button" id="refresh-prices">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2"/></svg>
+              Refresh
+            </button>
+          </div>
+
+          <div class="table-toolbar">
+            <div class="fuel-tabs" role="group" aria-label="Filter by fuel type">
+              <button type="button" class="fuel-tab is-active" data-fuel="" aria-pressed="true">All</button>
+              <button type="button" class="fuel-tab" data-fuel="Diesel" aria-pressed="false">Diesel</button>
+              <button type="button" class="fuel-tab" data-fuel="Gasoline (RON 95)" aria-pressed="false">Unleaded</button>
+              <button type="button" class="fuel-tab" data-fuel="Gasoline (RON 97)" aria-pressed="false">Premium</button>
+            </div>
+            <label class="price-search">
+              <span class="sr-only">Search station or area</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4 4"/></svg>
+              <input id="station-search" type="search" placeholder="Search station or area" autocomplete="off">
+            </label>
+          </div>
+
+          <div class="price-table-scroll">
+            <table class="price-table">
+              <thead>
+                <tr>
+                  <th scope="col">Station</th>
+                  <th scope="col">Fuel</th>
+                  <th scope="col" class="numeric-cell">Price</th>
+                  <th scope="col">Distance</th>
+                  <th scope="col">Updated</th>
+                </tr>
+              </thead>
+              <tbody id="price-table-body">
+                <tr class="skeleton-row" aria-hidden="true"><td><span class="skeleton skeleton-station"></span></td><td><span class="skeleton skeleton-fuel"></span></td><td><span class="skeleton skeleton-price"></span></td><td><span class="skeleton skeleton-short"></span></td><td><span class="skeleton skeleton-short"></span></td></tr>
+                <tr class="skeleton-row" aria-hidden="true"><td><span class="skeleton skeleton-station"></span></td><td><span class="skeleton skeleton-fuel"></span></td><td><span class="skeleton skeleton-price"></span></td><td><span class="skeleton skeleton-short"></span></td><td><span class="skeleton skeleton-short"></span></td></tr>
+                <tr class="skeleton-row" aria-hidden="true"><td><span class="skeleton skeleton-station"></span></td><td><span class="skeleton skeleton-fuel"></span></td><td><span class="skeleton skeleton-price"></span></td><td><span class="skeleton skeleton-short"></span></td><td><span class="skeleton skeleton-short"></span></td></tr>
+                <tr class="skeleton-row" aria-hidden="true"><td><span class="skeleton skeleton-station"></span></td><td><span class="skeleton skeleton-fuel"></span></td><td><span class="skeleton skeleton-price"></span></td><td><span class="skeleton skeleton-short"></span></td><td><span class="skeleton skeleton-short"></span></td></tr>
+                <tr class="skeleton-row" aria-hidden="true"><td><span class="skeleton skeleton-station"></span></td><td><span class="skeleton skeleton-fuel"></span></td><td><span class="skeleton skeleton-price"></span></td><td><span class="skeleton skeleton-short"></span></td><td><span class="skeleton skeleton-short"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="sr-only" id="price-load-status" role="status">Loading fuel prices</p>
+        </section>
+
+        <section class="map-preview-panel explorer-card" id="station-map" aria-labelledby="map-title">
+          <div class="map-preview-heading">
+            <div>
+              <h3 id="map-title">Station map</h3>
+              <span class="panel-caption">Browse the Philippines or find nearby prices.</span>
+            </div>
+            <button type="button" class="location-button" id="locate-me">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a7.8 7.8 0 0 0 0-6M4.6 9a7.8 7.8 0 0 0 0 6M15 4.6a7.8 7.8 0 0 0-6 0M9 19.4a7.8 7.8 0 0 0 6 0"/></svg>
+              My location
+            </button>
+          </div>
+          <p class="location-status" id="location-status" role="status" aria-live="polite"></p>
+          <div id="home-map" class="home-map" aria-label="Map of fuel stations in the Philippines"></div>
+          <div class="map-legend"><span aria-hidden="true"></span> Stations with approved prices</div>
+        </section>
+      </div>
+    </section>
+
+    <section class="info-section about-section" id="about" aria-labelledby="about-title">
+      <div class="container">
+        <div class="about-intro">
+          <div class="about-copy">
+            <h2 class="info-title" id="about-title">About PetroVision</h2>
+            <p class="section-subtitle">Fuel insights built from local reports and careful review.</p>
+            <p class="about-description">PetroVision is a community-powered way to compare fuel prices, find stations, and plan trip costs across the Philippines. Prices come from drivers and are reviewed before they appear.</p>
+          </div>
+          <aside class="about-card" aria-label="PetroVision overview">
+            <svg class="about-card-icon" viewBox="0 0 48 48" aria-hidden="true">
+              <path d="M8 12.5 19 8l10 4 11-4.5v28L29 40l-10-4-11 4.5v-28Z"/>
+              <path d="M19 8v28m10-24v28"/>
+              <path d="M24 17v6m0 7h.01"/>
+            </svg>
+            <h3>One clear view of fuel prices</h3>
+            <p>Find approved community reports together in one map and price list.</p>
+            <div class="about-card-note">
+              <span>Across the Philippines</span>
+              <span>Reviewed community reports</span>
+            </div>
+          </aside>
+        </div>
+
+        <div class="how-section">
+          <h3 class="info-subheading">How it works</h3>
+          <div class="how-grid">
+            <article class="how-card">
+              <svg class="step-number" viewBox="0 0 40 40" aria-hidden="true">
+                <circle cx="20" cy="20" r="17"/>
+                <text x="20" y="25" text-anchor="middle">1</text>
+              </svg>
+              <h4>Report</h4>
+              <p>Drivers submit the price they paid at a station.</p>
+            </article>
+            <article class="how-card">
+              <svg class="step-number" viewBox="0 0 40 40" aria-hidden="true">
+                <circle cx="20" cy="20" r="17"/>
+                <text x="20" y="25" text-anchor="middle">2</text>
+              </svg>
+              <h4>Verify</h4>
+              <p>Reports are reviewed and approved before they appear.</p>
+            </article>
+            <article class="how-card">
+              <svg class="step-number" viewBox="0 0 40 40" aria-hidden="true">
+                <circle cx="20" cy="20" r="17"/>
+                <text x="20" y="25" text-anchor="middle">3</text>
+              </svg>
+              <h4>Compare</h4>
+              <p>Everyone can see the latest approved prices on the map and list.</p>
+            </article>
+          </div>
+        </div>
+
+        <div class="goals-row">
+          <p>Our goals connect to</p>
+          <div class="goal-badges" aria-label="Related United Nations Sustainable Development Goals">
+            <span><strong>SDG 9</strong> Industry, Innovation and Infrastructure</span>
+            <span><strong>SDG 11</strong> Sustainable Cities and Communities</span>
+            <span><strong>SDG 12</strong> Responsible Consumption and Production</span>
+          </div>
+        </div>
+        <p class="about-disclaimer">Prices are community reported and subject to change.</p>
+      </div>
+    </section>
+
+    <section class="info-section contact-section" id="contact" aria-labelledby="contact-title">
+      <div class="container">
+        <div class="section-heading">
+          <h2 class="info-title" id="contact-title">Contact us</h2>
+          <p class="section-subtitle">Questions, feedback, or a wrong price? Send us a message.</p>
+        </div>
+        <div class="contact-grid">
+          <div class="contact-details">
+            <ul class="contact-list">
+              <li>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
+                <div>
+                  <span>Email</span>
+                  <a id="contact-email" href="mailto:hello@petrovision.example">hello@petrovision.example</a>
+                </div>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                <div>
+                  <span>Location</span>
+                  <p id="contact-location">Metro Manila, Philippines</p>
+                </div>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4L12 3Z"/><path d="M12 9v4m0 3v.01"/></svg>
+                <div>
+                  <span>Price issue</span>
+                  <a id="report-issue-link" href="login.html">Report a price issue <span aria-hidden="true">→</span></a>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div class="contact-form-card">
+            <div class="contact-form-heading">
+              <h3>Send a message</h3>
+              <p>We’ll get back to you as soon as we can.</p>
+            </div>
+            <form id="contact-form" novalidate>
+              <div class="honeypot" aria-hidden="true">
+                <label for="contact-website">Leave this field empty</label>
+                <input id="contact-website" name="website" type="text" tabindex="-1" autocomplete="off">
+              </div>
+              <div class="contact-form-grid">
+                <div class="form-field">
+                  <label for="contact-name">Name</label>
+                  <input id="contact-name" name="name" type="text" required minlength="2" maxlength="80" autocomplete="name" aria-describedby="contact-name-error">
+                  <p class="field-error" id="contact-name-error"></p>
+                </div>
+                <div class="form-field">
+                  <label for="contact-email-input">Email</label>
+                  <input id="contact-email-input" name="email" type="email" required maxlength="254" autocomplete="email" aria-describedby="contact-email-error">
+                  <p class="field-error" id="contact-email-error"></p>
+                </div>
+                <div class="form-field full-width">
+                  <label for="contact-subject">Subject</label>
+                  <select id="contact-subject" name="subject" required aria-describedby="contact-subject-error">
+                    <option value="">Select a subject</option>
+                    <option value="General question">General question</option>
+                    <option value="Report a wrong price">Report a wrong price</option>
+                    <option value="Partnership">Partnership</option>
+                    <option value="Bug report">Bug report</option>
+                  </select>
+                  <p class="field-error" id="contact-subject-error"></p>
+                </div>
+                <div class="form-field full-width">
+                  <label for="contact-message">Message</label>
+                  <textarea id="contact-message" name="message" rows="5" required maxlength="500" aria-describedby="contact-message-error message-count"></textarea>
+                  <div class="message-meta">
+                    <p class="field-error" id="contact-message-error"></p>
+                    <span id="message-count" aria-live="polite">0/500</span>
+                  </div>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="send-message-button" id="contact-submit" type="submit">Send message</button>
+                <p class="form-status" id="contact-status" role="status" aria-live="polite"></p>
+                <button class="retry-contact-button" id="contact-retry" type="button" hidden>Retry</button>
+              </div>
+            </form>
+            <div class="contact-confirmation" id="contact-confirmation" role="status" aria-live="polite" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+              <h3 id="confirmation-title" tabindex="-1"></h3>
+              <p id="confirmation-message"></p>
+              <a class="mailto-draft-link" id="mailto-draft-link" href="#" hidden>Open email draft <span aria-hidden="true">→</span></a>
+              <a class="send-another-link" id="send-another-link" href="#contact-form">Send another</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="home-footer container">
+    <div>
+      <a class="footer-logo" href="home.html">PETRO<span>VISION</span></a>
+      <p>Community-powered fuel prices for drivers across the Philippines.</p>
+    </div>
+    <div class="footer-links">
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+      <a href="login.html" id="footer-account-link">Login</a>
+    </div>
+    <span class="footer-brand-note">Prices are community reported and subject to change.</span>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/home.js"></script>
+</body>
+</html>

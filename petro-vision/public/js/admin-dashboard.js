@@ -1,0 +1,113 @@
+requireAdmin();
+paintNavUser();
+
+function statusBadge(status) {
+  const cls = status === "approved" ? "badge-success" : status === "rejected" ? "badge-danger" : "badge-warning";
+  return `<span class="badge ${cls}">${status[0].toUpperCase()}${status.slice(1)}</span>`;
+}
+function showBanner(message, type = "success") {
+  document.getElementById("banner").innerHTML = `<div class="banner banner-${type}">${escapeHtml(message)}</div>`;
+}
+function renderReports(reports) {
+  const filter = document.getElementById("report-filter").value.toLowerCase();
+  const rows = reports.filter(report => filter === "all" || report.status === filter);
+  document.getElementById("report-table").innerHTML = rows.map(report => {
+    const actions = report.status === "pending"
+      ? `<button class="btn btn-sm" onclick="reviewReport('${escapeHtml(report.id)}', 'approved', '${report.reportType}')">Approve</button>
+         <button class="btn btn-sm btn-danger" onclick="reviewReport('${escapeHtml(report.id)}', 'rejected', '${report.reportType}')">Reject</button>`
+      : `<span class="hint">Reviewed</span>`;
+    const stationVisibility = report.station?.verified
+      ? `<span class="badge badge-success">Visible on map</span>`
+      : report.station
+        ? `<span class="badge badge-warning">Pending station approval</span><br><a href="admin-management.html">Review station</a>`
+        : `<span class="badge badge-danger">Station record unavailable</span>`;
+    const reportDetails = report.reportType === "availability"
+      ? `${escapeHtml(report.fuelType)}<br>${escapeHtml(report.availabilityStatus || "Availability update")}`
+      : `${escapeHtml(report.fuelType)}<br>₱${Number(report.price).toFixed(2)}`;
+    return `<tr><td><strong>${escapeHtml(report.reportType === "availability" ? "Availability" : "Fuel price")} — ${escapeHtml(report.station?.name || "Station")}</strong><br><span class="hint">${escapeHtml(report.station?.address || "")}</span></td>
+      <td>${escapeHtml(report.contributor?.displayName || report.contributor?.email || "Driver")}</td>
+      <td>${reportDetails}</td>
+      <td>${new Date(report.reportedAt).toLocaleDateString()}</td><td>${statusBadge(report.status)}</td><td>${stationVisibility}</td><td>${actions}</td></tr>`;
+  }).join("") || `<tr><td colspan="7" class="hint">No reports in this category.</td></tr>`;
+}
+function renderAudit(audit) {
+  document.getElementById("audit-table").innerHTML = audit.slice(0, 30).map(log =>
+    `<tr><td>${new Date(log.createdAt).toLocaleString()}</td><td>${escapeHtml(log.actorEmail)}</td>
+      <td>${escapeHtml(log.action)}</td><td>${escapeHtml(log.entity)} ${escapeHtml(log.entityId)}</td><td>${escapeHtml(JSON.stringify(log.details))}</td></tr>`
+  ).join("") || `<tr><td colspan="5" class="hint">No audit activity yet.</td></tr>`;
+}
+
+let reports = [];
+async function render() {
+  const [dashboard, audit] = await Promise.all([getAdminDashboard(), getAdminAudit()]);
+  const [priceReports, availabilityReports] = await Promise.all([
+    getAdminReports(),
+    apiGet("/admin/availability-reports")
+  ]);
+  reports = [
+    ...priceReports.map(report => ({ ...report, reportType: "price" })),
+    ...availabilityReports.map(report => ({
+      ...report,
+      reportType: "availability",
+      status: report.reviewStatus || "pending",
+      availabilityStatus: report.status
+    }))
+  ].sort((a, b) => b.reportedAt.localeCompare(a.reportedAt));
+  document.getElementById("stat-pending").textContent = reports.filter(report => report.status === "pending").length;
+  document.getElementById("stat-approved").textContent = reports.filter(report => report.status === "approved").length;
+  document.getElementById("stat-rejected").textContent = reports.filter(report => report.status === "rejected").length;
+  document.getElementById("stat-audit").textContent = audit.length;
+  document.getElementById("stat-approved").title = `${dashboard.activeStations} verified stations`;
+  renderReports(reports);
+  renderAudit(audit);
+}
+async function renderStorageStatus() {
+  const element = document.getElementById("api-storage-status");
+  try {
+    const health = await getApiHealth();
+    if (health.persistence === "firestore") {
+      element.className = "banner banner-success";
+      element.textContent = "API storage: Firestore is configured. Logging out does not delete station reports, availability updates, or alerts.";
+    } else if (health.persistence === "memory") {
+      element.className = "banner banner-danger";
+      element.textContent = "API storage: process memory only. Records will be lost when the API restarts; configure Firestore for durable storage.";
+    } else {
+      element.className = "banner banner-info";
+      element.textContent = "API is responding, but its storage mode is unknown. Redeploy the API to expose its persistence status.";
+    }
+  } catch (error) {
+    element.className = "banner banner-danger";
+    element.textContent = `Could not verify API storage: ${error.message}`;
+  }
+}
+window.reviewReport = async function(id, status, reportType = "price") {
+  try {
+    if (reportType === "availability") {
+      await apiPut(`/admin/availability-reports/${encodeURIComponent(id)}/status`, { status: status.toLowerCase() });
+    }
+    else await setReportStatus(id, status);
+    const reviewed = reports.find(report => report.id === id && report.reportType === reportType);
+    const stationNeedsApproval = status === "approved" && reviewed?.station && !reviewed.station.verified;
+    const filterName = status[0].toUpperCase() + status.slice(1);
+    const reportName = reportType === "availability" ? "Availability report" : "Fuel price report";
+    const statusMessage = `${reportName} ${status}. It is now under the ${filterName} filter.`;
+    showBanner(stationNeedsApproval
+      ? `${statusMessage} Its station is still pending; approve it under Stations & Rewards before it appears on the map.`
+      : statusMessage);
+    await render();
+  } catch (error) {
+    showBanner(error.message, "danger");
+  }
+};
+document.getElementById("report-filter").addEventListener("change", () => renderReports(reports));
+document.getElementById("logout-link").addEventListener("click", async event => {
+  event.preventDefault();
+  try {
+    await signOut();
+  } catch (error) {
+    console.error("The API logout request failed.", error);
+  }
+  location.href = "login.html";
+});
+renderStorageStatus();
+render().catch(error => showBanner(error.message, "danger"));
