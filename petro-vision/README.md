@@ -44,26 +44,33 @@ Use the deployment-ready API copy in `backend/`; the original `github/` folder
 remains in place:
 
 1. **Deploy the API project first.** Import the repository in Vercel, set
-   **Root Directory** to `backend`, choose the Express framework if Vercel asks,
-   and leave the detected/default build settings in place. Vercel deploys the
-   default-exported Express app in `backend/src/app.ts`. After deployment, copy
-   its assigned HTTPS origin (for example, `https://your-api-project.vercel.app`).
+   **Root Directory** to `petro-vision/backend`, choose the Express framework if
+   Vercel asks, and leave the detected/default build settings in place. Vercel
+   deploys the default-exported Express app in `petro-vision/backend/src/app.ts`.
+   Before the first deployment, set `JWT_SECRET` and
+   `FIREBASE_SERVICE_ACCOUNT_JSON` in the API project's Environment Variables.
+   Never paste these secrets into chat or commit them. After deployment, copy
+   the assigned HTTPS origin (for example,
+   `https://your-api-project.vercel.app`).
 2. **Point the UI at the API.** In `public/js/config.js`, set
    `window.PETROVISION_API_URL` to the API origin followed by `/api`, for
-   example `https://your-api-project.vercel.app/api`. Commit and push this
-   setting, then deploy another Vercel project from the same repository with
-   **Root Directory** set to `public`. It is a plain static site; no build
-   command is needed.
+   example `https://your-api-project.vercel.app/api`. Commit and push this setting,
+   then deploy another Vercel project from the same repository with **Root
+   Directory** set to `petro-vision/public`. It is a plain static site; no build
+   command is needed. The `index.html` file redirects visitors to `home.html`.
 3. **Allow the UI origin.** In the API Vercel project's Environment Variables,
    set `FRONTEND_ORIGIN` to the exact HTTPS origin assigned to the UI project
    (no path or trailing slash), for example
    `https://your-ui-project.vercel.app`. For local Live Server development, the
-   existing localhost origins are also allowed.
-4. **Set API environment variables** in Vercel for the API project: a unique,
-   long random `JWT_SECRET`, and `ADMIN_EMAIL` if you want to bootstrap an
-   administrator. Add Google Routes or Firebase variables only if you use
-   those integrations. Never put backend secrets in `public/` or in
-   `public/js/config.js`.
+   existing localhost origins are also allowed. Redeploy the API after changing
+   this setting.
+4. `FIREBASE_SERVICE_ACCOUNT_JSON` must contain the Firebase service-account
+   JSON as a single-line value; the API refuses to start on Vercel without it.
+   `JWT_SECRET` must be a unique, long random secret. Set `ADMIN_EMAIL` before
+   registering the email address that should receive admin privileges, and
+   configure `GOOGLE_MAPS_API_KEY` only if needed. Enter all secrets directly
+   in Vercel's Environment Variables settings; never put them in the repository
+   or `public/js/config.js`.
 5. Redeploy after changing project settings or environment variables. Test
    `https://your-api-project.vercel.app/api/health`, then test registration,
    sign-in, and a protected UI page on the deployed site.

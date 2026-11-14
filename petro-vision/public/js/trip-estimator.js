@@ -9,8 +9,6 @@
    ============================================================ */
 
 const username = requireAuth();
-paintNavUser();
-updateNavigation();
 
 const fromSelect = document.getElementById("from-city");
 const toSelect = document.getElementById("to-city");
@@ -84,7 +82,6 @@ form.addEventListener("submit", async (event) => {
     submit.disabled = false;
   }
 });
-
 document.getElementById("save-history-btn").addEventListener("click", async () => {
   if (!lastEstimate) return;
   const button = document.getElementById("save-history-btn");
@@ -99,20 +96,3 @@ document.getElementById("save-history-btn").addEventListener("click", async () =
     button.disabled = false;
   }
 });
-
-  // Update navigation based on auth state
-  function updateNavigation() {
-    const session = getSession();
-    const navLogin = document.getElementById("nav-login");
-    const navProfile = document.getElementById("nav-profile");
-    const navUsername = document.getElementById("nav-username");
-
-    if (session?.user) {
-      if (navLogin) navLogin.style.display = "none";
-      if (navProfile) navProfile.style.display = "inline-flex";
-      if (navUsername) navUsername.textContent = session.user.displayName?.split(/\s+/)[0] || "User";
-    } else {
-      if (navLogin) navLogin.style.display = "inline-block";
-      if (navProfile) navProfile.style.display = "none";
-    }
-  }

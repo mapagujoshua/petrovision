@@ -7,7 +7,6 @@
    ============================================================ */
 
 const username = requireAuth();
-paintNavUser();
 
 const fuelFilter = document.getElementById("filter-fuel");
 const statusFilter = document.getElementById("filter-status");

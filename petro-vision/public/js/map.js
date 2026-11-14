@@ -463,86 +463,6 @@ async function loadStations() {
   }
 }
 
-function updateThemeButton() {
-  const button = document.getElementById("theme-toggle");
-  const isDark = document.documentElement.dataset.theme === "dark";
-  button.setAttribute("aria-pressed", String(isDark));
-  button.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
-}
-
-function closeDropdown(button, menu, restoreFocus = false) {
-  if (!menu || menu.hidden) return;
-  menu.hidden = true;
-  button?.setAttribute("aria-expanded", "false");
-  if (restoreFocus) button?.focus();
-}
-
-function toggleDropdown(button, menu, otherDropdowns) {
-  const shouldOpen = menu.hidden;
-  otherDropdowns.forEach(([otherButton, otherMenu]) => closeDropdown(otherButton, otherMenu));
-  menu.hidden = !shouldOpen;
-  button.setAttribute("aria-expanded", String(shouldOpen));
-}
-
-function initializeNavigation() {
-  const navbar = document.querySelector(".app-navbar");
-  const navToggle = document.getElementById("nav-toggle");
-  const primaryNav = document.getElementById("primary-nav");
-  const moreToggle = document.getElementById("more-toggle");
-  const moreMenu = document.getElementById("more-menu");
-  const profileToggle = document.getElementById("profile-toggle");
-  const profileMenu = document.getElementById("profile-menu");
-  const dropdowns = [[moreToggle, moreMenu], [profileToggle, profileMenu]];
-  const displayName = session?.user?.displayName?.trim()
-    || session?.user?.email?.split("@")[0]
-    || "Account";
-  document.getElementById("nav-username").textContent = displayName.split(/\s+/)[0];
-  document.getElementById("nav-avatar").textContent = displayName.charAt(0).toUpperCase();
-
-  moreToggle.addEventListener("click", () => toggleDropdown(moreToggle, moreMenu, [ [profileToggle, profileMenu] ]));
-  profileToggle.addEventListener("click", () => toggleDropdown(profileToggle, profileMenu, [ [moreToggle, moreMenu] ]));
-  navToggle.addEventListener("click", () => {
-    const isOpen = navbar.classList.toggle("is-menu-open");
-    navToggle.setAttribute("aria-expanded", String(isOpen));
-    navToggle.setAttribute("aria-label", isOpen ? "Close navigation menu" : "Open navigation menu");
-  });
-
-  document.addEventListener("click", event => {
-    dropdowns.forEach(([button, menu]) => {
-      if (!button.contains(event.target) && !menu.contains(event.target)) closeDropdown(button, menu);
-    });
-    if (!primaryNav.contains(event.target) && !navToggle.contains(event.target)) {
-      navbar.classList.remove("is-menu-open");
-      navToggle.setAttribute("aria-expanded", "false");
-      navToggle.setAttribute("aria-label", "Open navigation menu");
-    }
-  });
-
-  document.addEventListener("keydown", event => {
-    if (event.key !== "Escape") return;
-    const openDropdown = dropdowns.find(([, menu]) => !menu.hidden);
-    if (openDropdown) closeDropdown(openDropdown[0], openDropdown[1], true);
-    if (navbar.classList.contains("is-menu-open")) {
-      navbar.classList.remove("is-menu-open");
-      navToggle.setAttribute("aria-expanded", "false");
-      navToggle.setAttribute("aria-label", "Open navigation menu");
-      navToggle.focus();
-    }
-  });
-
-  primaryNav.querySelectorAll("a").forEach(link => link.addEventListener("click", () => {
-    navbar.classList.remove("is-menu-open");
-    navToggle.setAttribute("aria-expanded", "false");
-  }));
-  window.addEventListener("resize", () => {
-    if (window.innerWidth > 900) {
-      navbar.classList.remove("is-menu-open");
-      navToggle.setAttribute("aria-expanded", "false");
-      navToggle.setAttribute("aria-label", "Open navigation menu");
-    }
-  });
-}
-
 function initializeMapSizing() {
   const resizeMap = entry => {
     const rect = entry?.contentRect || mapFrame.getBoundingClientRect();
@@ -653,29 +573,5 @@ document.getElementById("sheet-toggle").addEventListener("click", event => {
   requestAnimationFrame(() => map.invalidateSize({ pan: false }));
 });
 
-document.getElementById("theme-toggle").addEventListener("click", () => {
-  const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = nextTheme;
-  try {
-    localStorage.setItem("petrovision-theme", nextTheme);
-  } catch (error) {
-    console.warn("Could not save the selected theme.", error);
-  }
-  updateThemeButton();
-  requestAnimationFrame(() => map.invalidateSize({ pan: false }));
-});
-
-document.getElementById("logout-button").addEventListener("click", async () => {
-  try {
-    await signOut();
-  } catch (error) {
-    console.error("The API logout request failed.", error);
-  } finally {
-    window.location.href = "home.html";
-  }
-});
-
-initializeNavigation();
 initializeMapSizing();
-updateThemeButton();
 loadStations();

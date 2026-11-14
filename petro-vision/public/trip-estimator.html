@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,28 +8,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/app-nav.css">
+<script src="components/app-nav.js"></script>
 </head>
 <body>
 
-  <header class="navbar">
-      <a href="home.html" class="logo"> Petro<span class="accent">Vision</span></a>
-    <nav class="nav-links">
-      <ul>
-          <li><a href="home.html">Home</a></li>
-        <li><a href="map.html">Map</a></li>
-        <li><a href="trip-estimator.html" class="active">Trip Cost</a></li>
-        <li><a href="history.html">History</a></li>
-        <li><a href="rewards.html">Rewards</a></li>
-        <li><a href="garage.html">Garage</a></li>
-        <li><a href="alerts.html">Alerts</a></li>
-        <li><a href="availability.html">Availability</a></li>
-          <li><a href="home.html#about">About</a></li>
-          <li><a href="home.html#contact">Contact</a></li>
-          <li><a href="login.html" id="nav-login">Log In</a></li>
-      </ul>
-    </nav>
-      <a href="profile.html" class="profile-link" id="nav-profile" style="display:none;"><span id="nav-username">...</span></a>
-  </header>
+  <div id="app-nav"></div>
 
   <main class="container">
     <div class="page-head">

@@ -5,8 +5,6 @@
    ============================================================ */
 
 const username = requireAuth();
-paintNavUser();
-updateNavigation();
 
 const typeSelect = document.getElementById("v-type");
 const fuelSelect = document.getElementById("v-fuel");
@@ -58,7 +56,6 @@ async function renderVehicles() {
 renderVehicles().catch(error => {
   document.getElementById("banner").innerHTML = `<div class="banner banner-danger">${escapeHtml(error.message)}</div>`;
 });
-
 document.getElementById("vehicle-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const submit = event.currentTarget.querySelector("button[type=submit]");
@@ -81,20 +78,3 @@ document.getElementById("vehicle-form").addEventListener("submit", async (event)
     submit.disabled = false;
   }
 });
-
-  // Update navigation based on auth state
-  function updateNavigation() {
-    const session = getSession();
-    const navLogin = document.getElementById("nav-login");
-    const navProfile = document.getElementById("nav-profile");
-    const navUsername = document.getElementById("nav-username");
-
-    if (session?.user) {
-      if (navLogin) navLogin.style.display = "none";
-      if (navProfile) navProfile.style.display = "inline-flex";
-      if (navUsername) navUsername.textContent = session.user.displayName?.split(/\s+/)[0] || "User";
-    } else {
-      if (navLogin) navLogin.style.display = "inline-block";
-      if (navProfile) navProfile.style.display = "none";
-    }
-  }

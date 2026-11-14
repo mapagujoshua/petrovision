@@ -9,7 +9,8 @@ afterEach(resetStore);
 test("health endpoint reports ready", async () => {
   const response = await request(app).get("/health");
   assert.equal(response.status, 200);
-  assert.deepEqual(response.body, { status: "ok" });
+  assert.equal(response.body.status, "ok");
+  assert.ok(["memory", "firestore"].includes(response.body.persistence));
 });
 
 test("API root returns service information", async () => {
@@ -51,9 +52,17 @@ test("registration returns a bearer token and profile without password hash", as
 test("UI-facing station and reward APIs return a driver's updated records", async () => {
   const registration = await request(app).post("/api/auth/register").send({ email: "stations@example.com", password: "strong-password", displayName: "Station Driver" });
   const headers = { Authorization: `Bearer ${registration.body.accessToken}` };
-  await request(app).post("/api/stations/station-demo/price-reports").set(headers).send({ fuelType: "Diesel", price: 58 }).expect(201);
-  await request(app).post("/api/stations/station-demo/availability").set(headers).send({ fuelType: "Diesel", status: "Low Stock" }).expect(201);
+  const priceReport = await request(app).post("/api/stations/station-demo/price-reports").set(headers).send({ fuelType: "Diesel", price: 58 }).expect(201);
+  const availabilityReport = await request(app).post("/api/stations/station-demo/availability").set(headers).send({ fuelType: "Diesel", status: "Low Stock" }).expect(201);
+  const reviewer = await request(app).post("/api/auth/register").send({ email: "stations-reviewer@example.com", password: "strong-password", displayName: "Reviewer" });
+  users.get(reviewer.body.user.id)!.role = "admin";
+  const adminHeaders = { Authorization: `Bearer ${reviewer.body.accessToken}` };
 
+  const pendingStations = await request(app).get("/api/stations").set(headers);
+  assert.deepEqual(pendingStations.body[0].priceReports, []);
+  assert.deepEqual(pendingStations.body[0].availabilityReports, []);
+  await request(app).put(`/api/price-reports/${priceReport.body.id}/verify`).set(adminHeaders).send({ verified: true }).expect(200);
+  await request(app).put(`/api/admin/availability-reports/${availabilityReport.body.id}/status`).set(adminHeaders).send({ status: "approved" }).expect(200);
   const stations = await request(app).get("/api/stations").set(headers);
   assert.equal(stations.status, 200);
   assert.equal(stations.body[0].priceReports[0].price, 58);
@@ -127,9 +136,10 @@ test("configured bootstrap email receives admin access", async () => {
   }
 });
 
-test("users can verify another driver's report but not their own", async () => {
+test("admins can verify another driver's report while contributors cannot", async () => {
   const reporter = await request(app).post("/api/auth/register").send({ email: "reporter@example.com", password: "strong-password", displayName: "Reporter" });
   const reviewer = await request(app).post("/api/auth/register").send({ email: "reviewer@example.com", password: "strong-password", displayName: "Reviewer" });
+  users.get(reviewer.body.user.id)!.role = "admin";
   const report = await request(app).post("/api/stations/station-demo/price-reports")
     .set("Authorization", `Bearer ${reporter.body.accessToken}`)
     .send({ fuelType: "gasoline", price: 1.45 });
@@ -158,7 +168,10 @@ test("price contributions earn points, trigger matching alerts, and can be redee
     assert.equal(subscription.status, 201);
     assert.equal("fcmToken" in subscription.body, false);
 
-    await request(app).post("/api/stations/station-demo/price-reports").set(headers).send({ fuelType: "gasoline", price: 1.45 }).expect(201);
+    const priceReport = await request(app).post("/api/stations/station-demo/price-reports").set(headers).send({ fuelType: "gasoline", price: 1.45 }).expect(201);
+    const pendingInbox = await request(app).get("/api/notifications").set(headers);
+    assert.equal(pendingInbox.body.notifications.length, 0);
+    await request(app).put(`/api/price-reports/${priceReport.body.id}/verify`).set(adminHeaders).send({ verified: true }).expect(200);
     const account = await request(app).get("/api/rewards/me").set(headers);
     assert.equal(account.body.points, 107);
     assert.equal(account.body.contributionStats["price-report"], 1);
