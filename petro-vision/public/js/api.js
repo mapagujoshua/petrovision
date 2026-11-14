@@ -190,6 +190,17 @@ async function getCurrentUser() {
   if (session) setSession(user, session.accessToken, session.refreshToken);
   return user;
 }
+async function updateCurrentUser(fields) { return apiPut("/users/me", fields); }
+async function getMyReports() { return apiGet("/users/me/reports"); }
+async function changeCurrentPassword(currentPassword, newPassword) {
+  return apiPost("/users/me/password", { currentPassword, newPassword });
+}
+async function deleteCurrentAccount(currentPassword) {
+  return apiRequest("/users/me", {
+    method: "DELETE",
+    body: JSON.stringify({ currentPassword, confirmation: "DELETE" })
+  });
+}
 async function getApiHealth() { return apiGet("/health"); }
 
 async function getVehicles() {

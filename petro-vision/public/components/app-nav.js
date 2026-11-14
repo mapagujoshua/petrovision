@@ -6,15 +6,21 @@
     { href: "history.html", label: "History" },
     { href: "rewards.html", label: "Rewards" }
   ];
-  const MORE_LINKS = [
+  const BASE_MORE_LINKS = [
     { href: "garage.html", label: "Garage" },
     { href: "alerts.html", label: "Alerts" },
     { href: "availability.html", label: "Availability" },
+    { href: "dashboard.html", label: "Dashboard" },
     { href: "home.html#about", label: "About" },
     { href: "home.html#contact", label: "Contact" }
   ];
+  const ADMIN_LINKS = [
+    { href: "admin-dashboard.html", label: "Admin audit" },
+    { href: "admin-management.html", label: "Admin stations" }
+  ];
   const ACCOUNT_LINKS = [
     { href: "profile.html", label: "Profile" },
+    { href: "dashboard.html", label: "Dashboard" },
     { href: "garage.html", label: "Garage" },
     { href: "alerts.html", label: "Alerts" },
     { href: "availability.html", label: "Availability" }
@@ -30,32 +36,60 @@
     })[character]);
   }
 
-  function preferredTheme() {
-    try {
-      const savedTheme = localStorage.getItem(THEME_KEY);
-      if (savedTheme === "light" || savedTheme === "dark") return savedTheme;
-    } catch (error) {
-      console.warn("Could not read the saved PetroVision theme.", error);
-    }
+  function systemTheme() {
     return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
 
-  function setTheme(theme) {
-    document.documentElement.dataset.theme = theme;
-    const toggle = document.getElementById("pv-theme-toggle");
-    if (toggle) {
-      const isDark = theme === "dark";
-      toggle.setAttribute("aria-pressed", String(isDark));
-      toggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
-    }
+  function savedThemePreference() {
     try {
-      localStorage.setItem(THEME_KEY, theme);
+      const savedTheme = localStorage.getItem(THEME_KEY);
+      if (savedTheme === "light" || savedTheme === "dark" || savedTheme === "system") return savedTheme;
     } catch (error) {
-      console.warn("Could not save the selected PetroVision theme.", error);
+      console.warn("Could not read the saved PetroVision theme.", error);
+    }
+    return "system";
+  }
+
+  function updateThemeToggle() {
+    const toggle = document.getElementById("pv-theme-toggle");
+    if (!toggle) return;
+    const isDark = document.documentElement.dataset.theme === "dark";
+    toggle.setAttribute("aria-pressed", String(isDark));
+    toggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+  }
+
+  function applyThemePreference(preference, persist = true) {
+    const nextPreference = ["light", "dark", "system"].includes(preference) ? preference : "system";
+    document.documentElement.dataset.theme = nextPreference === "system" ? systemTheme() : nextPreference;
+    updateThemeToggle();
+    if (persist) {
+      try {
+        localStorage.setItem(THEME_KEY, nextPreference);
+      } catch (error) {
+        console.warn("Could not save the selected PetroVision theme.", error);
+      }
     }
   }
 
-  document.documentElement.dataset.theme = preferredTheme();
+  function setTheme(theme) {
+    applyThemePreference(theme, true);
+  }
+
+  function initialTheme() {
+    const preference = savedThemePreference();
+    return preference === "system" ? systemTheme() : preference;
+  }
+
+  document.documentElement.dataset.theme = initialTheme();
+  window.PetroVisionTheme = {
+    getPreference: savedThemePreference,
+    setPreference: applyThemePreference
+  };
+
+  const systemThemeMedia = window.matchMedia?.("(prefers-color-scheme: dark)");
+  systemThemeMedia?.addEventListener?.("change", () => {
+    if (savedThemePreference() === "system") applyThemePreference("system", false);
+  });
 
   function activeHref(href) {
     const target = new URL(href, window.location.href);
@@ -63,8 +97,16 @@
       && (!target.hash || target.hash === window.location.hash);
   }
 
-  function isMoreActive() {
-    return MORE_LINKS.some(item => activeHref(item.href));
+  function getMoreLinks(isAdmin) {
+    return [
+      ...BASE_MORE_LINKS.slice(0, 4),
+      ...(isAdmin ? ADMIN_LINKS : []),
+      ...BASE_MORE_LINKS.slice(4)
+    ];
+  }
+
+  function isMoreActive(moreLinks) {
+    return moreLinks.some(item => activeHref(item.href));
   }
 
   function renderLink(item, className = "pv-nav-link", role = "") {
@@ -79,15 +121,19 @@
     return items.map(item => renderLink(item, "pv-menu-item", "menuitem")).join("");
   }
 
-  function renderNavigation(username) {
-    const currentMore = isMoreActive();
+  function renderNavigation(session) {
+    const username = session?.user?.displayName?.trim()
+      || session?.user?.email?.split("@")[0]
+      || "Account";
+    const moreLinksData = getMoreLinks(session?.user?.role === "admin");
+    const currentMore = isMoreActive(moreLinksData);
     const initial = username.charAt(0).toUpperCase() || "U";
     const primaryLinks = PRIMARY_LINKS.map(item => renderLink(item)).join("");
-    const moreLinks = menuItems(MORE_LINKS);
+    const moreLinks = menuItems(moreLinksData);
     const accountLinks = menuItems(ACCOUNT_LINKS);
     const mobilePrimaryLinks = PRIMARY_LINKS.map(item => renderLink(item, "pv-drawer-link")).join("");
-    const mobileMoreLinks = MORE_LINKS
-      .filter(item => item.href.startsWith("home.html#"))
+    const mobileMoreLinks = moreLinksData
+      .filter(item => item.href === "dashboard.html" || item.href.startsWith("admin-") || item.href.startsWith("home.html#"))
       .map(item => renderLink(item, "pv-drawer-link"))
       .join("");
     const mobileAccountLinks = ACCOUNT_LINKS.map(item => renderLink(item, "pv-drawer-link")).join("");
@@ -158,10 +204,7 @@
     if (!mount) return;
 
     const session = typeof getSession === "function" ? getSession() : null;
-    const username = session?.user?.displayName?.trim()
-      || session?.user?.email?.split("@")[0]
-      || "Account";
-    mount.innerHTML = renderNavigation(username);
+    mount.innerHTML = renderNavigation(session);
 
     const moreToggle = document.getElementById("pv-more-toggle");
     const moreMenu = document.getElementById("pv-more-menu");
@@ -317,7 +360,7 @@
       });
     }
 
-    setTheme(document.documentElement.dataset.theme);
+    updateThemeToggle();
   }
 
   if (document.readyState === "loading") {

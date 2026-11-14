@@ -1,5 +1,4 @@
 requireAdmin();
-paintNavUser();
 
 function statusBadge(status) {
   const cls = status === "approved" ? "badge-success" : status === "rejected" ? "badge-danger" : "badge-warning";
@@ -100,14 +99,5 @@ window.reviewReport = async function(id, status, reportType = "price") {
   }
 };
 document.getElementById("report-filter").addEventListener("change", () => renderReports(reports));
-document.getElementById("logout-link").addEventListener("click", async event => {
-  event.preventDefault();
-  try {
-    await signOut();
-  } catch (error) {
-    console.error("The API logout request failed.", error);
-  }
-  location.href = "login.html";
-});
 renderStorageStatus();
 render().catch(error => showBanner(error.message, "danger"));

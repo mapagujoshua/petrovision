@@ -1,5 +1,4 @@
 requireAdmin();
-paintNavUser();
 
 const rewardFields = {
   newStation: "price-report",
@@ -120,13 +119,4 @@ document.getElementById("points-form").addEventListener("submit", async event =>
   }
 });
 document.getElementById("station-search").addEventListener("input", () => renderStations().catch(error => showBanner(error.message, "danger")));
-document.getElementById("logout-link").addEventListener("click", async event => {
-  event.preventDefault();
-  try {
-    await signOut();
-  } catch (error) {
-    console.error("The API logout request failed.", error);
-  }
-  location.href = "login.html";
-});
 Promise.all([loadRewards(), loadUsers(), renderStations()]).catch(error => showBanner(error.message, "danger"));

@@ -1,0 +1,250 @@
+:root {
+  color-scheme: light dark;
+  --bg: #F6F7F9;
+  --surface: #FFFFFF;
+  --surface-2: #F1F3F6;
+  --border: #E3E6EB;
+  --text: #0F2236;
+  --text-muted: #5B6676;
+  --navy: #0E2A47;
+  --accent: #F47B20;
+  --accent-text: #FFFFFF;
+  --good: #15803D;
+  --bad: #B91C1C;
+  --focus-ring: #F47B20;
+  --shadow-card: 0 8px 26px rgb(15 34 54 / 8%);
+  --radius: 12px;
+  --font-body: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --card: var(--surface);
+  --ink: var(--text);
+  --ink-soft: var(--text-muted);
+  --line: var(--border);
+  --brand: var(--navy);
+  --brand-dark: #173B5A;
+  --accent-dark: #D9601C;
+  --success: var(--good);
+  --success-bg: #E8F6EF;
+  --danger: var(--bad);
+  --danger-bg: #FCEAEA;
+  --warning: #8A5A00;
+  --warning-bg: #FBF1DF;
+  --gold: #8A6500;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0A1522;
+  --surface: #111F30;
+  --surface-2: #172A40;
+  --border: #2B3D50;
+  --text: #E8EEF5;
+  --text-muted: #A7B5C4;
+  --navy: #9CC8F0;
+  --accent: #FF8A3D;
+  --accent-text: #1A0E00;
+  --good: #4ADE80;
+  --bad: #F87171;
+  --focus-ring: #FF8A3D;
+  --shadow-card: none;
+
+  --brand: var(--navy);
+  --brand-dark: #B7D7F5;
+  --accent-dark: #FF9B59;
+  --success: var(--good);
+  --success-bg: #143425;
+  --danger: var(--bad);
+  --danger-bg: #3B2025;
+  --warning: #FBBF24;
+  --warning-bg: #3B2E18;
+  --gold: #FCD34D;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+  scrollbar-color: var(--border) var(--bg);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text);
+  font-family: var(--font-heading);
+}
+
+p {
+  color: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  color: var(--text);
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+select,
+input[type="date"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="time"] {
+  color-scheme: inherit;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.container {
+  width: min(1200px, calc(100% - 48px));
+  margin-inline: auto;
+}
+
+.card,
+.stat-tile,
+.feature-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text);
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  color: var(--text-muted);
+}
+
+.badge-neutral {
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.badge-success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.badge-warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.badge-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.hint,
+.page-head p,
+.stat-tile .label {
+  color: var(--text-muted);
+}
+
+.btn {
+  min-height: 44px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.btn:hover {
+  background: var(--accent-dark);
+}
+
+.btn-secondary {
+  background: var(--navy);
+  color: var(--surface);
+}
+
+.btn-outline {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.btn-danger {
+  background: var(--bad);
+  color: var(--surface);
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid var(--bg);
+  border-radius: 999px;
+  background: var(--border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}

@@ -37,6 +37,7 @@ export const notificationSubscriptions = new Map<string, NotificationSubscriptio
 export const notifications = new Map<string, AppNotification>();
 export const auditLogs = new Map<string, AuditLog>();
 export const activeSessions = new Set<string>();
+export const activeSessionOwners = new Map<string, string>();
 
 export function resetStore(): void {
   users.clear();
@@ -73,4 +74,5 @@ export function resetStore(): void {
   notifications.clear();
   auditLogs.clear();
   activeSessions.clear();
+  activeSessionOwners.clear();
 }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import request from "supertest";
 import { app } from "../src/app.js";
-import { resetStore, users } from "../src/store.js";
+import { priceReports, resetStore, users, vehicles } from "../src/store.js";
 
 afterEach(resetStore);
 
@@ -109,6 +109,72 @@ test("logout revokes the active access token", async () => {
   const token = login.body.accessToken as string;
   assert.equal((await request(app).post("/api/auth/logout").set("Authorization", `Bearer ${token}`)).status, 204);
   assert.equal((await request(app).get("/api/users/me").set("Authorization", `Bearer ${token}`)).status, 401);
+});
+
+test("profile reports are limited to the authenticated user", async () => {
+  const first = await request(app).post("/api/auth/register").send({ email: "profile-one@example.com", password: "strong-password", displayName: "First" });
+  const second = await request(app).post("/api/auth/register").send({ email: "profile-two@example.com", password: "strong-password", displayName: "Second" });
+  await request(app).post("/api/stations/station-demo/price-reports")
+    .set("Authorization", `Bearer ${first.body.accessToken}`)
+    .send({ fuelType: "Diesel", price: 58 })
+    .expect(201);
+  await request(app).post("/api/stations/station-demo/price-reports")
+    .set("Authorization", `Bearer ${second.body.accessToken}`)
+    .send({ fuelType: "Diesel", price: 59 })
+    .expect(201);
+
+  const reports = await request(app).get("/api/users/me/reports")
+    .set("Authorization", `Bearer ${first.body.accessToken}`)
+    .expect(200);
+  assert.equal(reports.body.length, 1);
+  assert.equal(reports.body[0].price, 58);
+  assert.equal(reports.body[0].status, "pending");
+});
+
+test("password changes require the current password and revoke sessions", async () => {
+  const registration = await request(app).post("/api/auth/register").send({ email: "password@example.com", password: "strong-password", displayName: "Driver" });
+  const headers = { Authorization: `Bearer ${registration.body.accessToken}` };
+
+  await request(app).post("/api/users/me/password").set(headers)
+    .send({ currentPassword: "wrong-password", newPassword: "another-password" })
+    .expect(400);
+  await request(app).get("/api/users/me").set(headers).expect(200);
+
+  await request(app).post("/api/users/me/password").set(headers)
+    .send({ currentPassword: "strong-password", newPassword: "another-password" })
+    .expect(204);
+  await request(app).get("/api/users/me").set(headers).expect(401);
+  await request(app).post("/api/auth/login")
+    .send({ email: "password@example.com", password: "another-password" })
+    .expect(200);
+});
+
+test("account deletion anonymizes contributions and removes private account data", async () => {
+  const registration = await request(app).post("/api/auth/register").send({ email: "delete@example.com", password: "strong-password", displayName: "Driver" });
+  const headers = { Authorization: `Bearer ${registration.body.accessToken}` };
+  const report = await request(app).post("/api/stations/station-demo/price-reports")
+    .set(headers)
+    .send({ fuelType: "Diesel", price: 58 })
+    .expect(201);
+  const vehicle = await request(app).post("/api/vehicles").set(headers)
+    .send({ make: "Toyota", model: "Sedan", year: 2024, fuelType: "Diesel", fuelEfficiency: 12 })
+    .expect(201);
+
+  await request(app).delete("/api/users/me").set(headers)
+    .send({ currentPassword: "wrong-password", confirmation: "DELETE" })
+    .expect(400);
+  assert.equal((await request(app).get("/api/users/me").set(headers)).status, 200);
+
+  await request(app).delete("/api/users/me").set(headers)
+    .send({ currentPassword: "strong-password", confirmation: "DELETE" })
+    .expect(204);
+  assert.equal(users.has(registration.body.user.id), false);
+  assert.equal(vehicles.has(vehicle.body.id), false);
+  assert.equal(priceReports.get(report.body.id)?.userId, "deleted-account");
+  await request(app).get("/api/users/me").set(headers).expect(401);
+  await request(app).post("/api/auth/login")
+    .send({ email: "delete@example.com", password: "strong-password" })
+    .expect(401);
 });
 
 test("authorization reflects current role and suspension status", async () => {

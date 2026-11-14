@@ -1,76 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PetroVision — Profile</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+  (() => {
+    let preference;
+    try { preference = localStorage.getItem("petrovision-theme"); } catch (error) { preference = null; }
+    const theme = preference === "light" || preference === "dark"
+      ? preference
+      : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+  })();
+  </script>
+  <title>PetroVision — Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/profile.css">
+  <link rel="stylesheet" href="css/app-nav.css">
+  <script src="components/app-nav.js"></script>
 </head>
 <body>
+  <div id="app-nav"></div>
 
-  <header class="navbar">
-      <a href="home.html" class="logo"> Petro<span class="accent">Vision</span></a>
-    <nav class="nav-links">
-      <ul>
-          <li><a href="home.html">Home</a></li>
-        <li><a href="map.html">Map</a></li>
-        <li><a href="trip-estimator.html">Trip Cost</a></li>
-        <li><a href="history.html">History</a></li>
-        <li><a href="rewards.html">Rewards</a></li>
-        <li><a href="garage.html">Garage</a></li>
-        <li><a href="alerts.html">Alerts</a></li>
-        <li><a href="availability.html">Availability</a></li>
-          <li><a href="home.html#about">About</a></li>
-          <li><a href="home.html#contact">Contact</a></li>
-          <li><a href="login.html" id="nav-login">Log In</a></li>
-      </ul>
-    </nav>
-      <a href="profile.html" class="profile-link active" id="nav-profile" style="display:none;"><span id="nav-username">...</span></a>
-  </header>
-
-  <main class="container">
-    <div class="page-head">
-      <h1>Driver Profile Card</h1>
-      <p>Your basic info, contributions, and rewards — this is what other drivers would see about you.</p>
-    </div>
-
-    <div class="grid-2">
-      <div class="card" style="text-align:center;">
-        <div class="avatar" id="profile-avatar"
-             style="width:80px; height:80px; border-radius:50%; background:var(--brand); color:#fff;
-                    display:flex; align-items:center; justify-content:center; font-size:1.6rem; font-weight:700;
-                    margin:0 auto 14px;">--</div>
-        <h2 id="profile-name" style="margin-bottom:2px;">–</h2>
-        <p class="hint" id="profile-username">–</p>
-        <span class="tier-badge" id="profile-badge" style="background:#94A3B8; margin-top:8px;">Newbie</span>
-        <p class="hint" style="margin-top:14px;">Member since <span id="profile-joined">–</span></p>
-        <button class="btn btn-outline btn-block" id="logout-btn" style="margin-top:18px;">Log Out</button>
+  <main class="profile-page container">
+    <header class="profile-heading">
+      <div class="profile-avatar" id="profile-avatar" aria-hidden="true">U</div>
+      <div class="profile-heading-copy">
+        <p class="profile-eyebrow">Your account</p>
+        <h1 id="profile-name">Loading profile…</h1>
+        <p class="profile-email" id="profile-email"></p>
+        <p class="profile-joined" id="profile-joined"></p>
       </div>
+    </header>
 
-      <div class="stack">
-        <div class="grid-2">
-          <div class="stat-tile"><div class="label">Total points</div><div class="value accent" id="profile-points">–</div></div>
-          <div class="stat-tile"><div class="label">Reports submitted</div><div class="value" id="profile-submissions">–</div></div>
-        </div>
-        <div class="grid-2">
-          <div class="stat-tile"><div class="label">Vehicles in Garage</div><div class="value" id="profile-vehicles">–</div></div>
-          <div class="stat-tile"><div class="label">Trips &amp; refuels logged</div><div class="value" id="profile-history">–</div></div>
-        </div>
+    <p class="profile-message" id="profile-message" role="status" aria-live="polite" hidden></p>
 
-        <div class="card">
-          <h3>Your reported stations</h3>
-          <div id="profile-stations" class="table-wrap"></div>
+    <div class="profile-grid">
+      <section class="profile-card card" aria-labelledby="account-title">
+        <h2 id="account-title">Account details</h2>
+        <form id="account-form">
+          <div class="profile-field">
+            <label for="account-name">Name</label>
+            <input id="account-name" name="displayName" type="text" autocomplete="name" maxlength="100" required>
+          </div>
+          <div class="profile-field">
+            <label for="account-email">Email</label>
+            <input id="account-email" name="email" type="email" autocomplete="email" required>
+          </div>
+          <button class="profile-button profile-button-primary" type="submit">Save changes</button>
+        </form>
+
+        <div class="profile-divider"></div>
+        <div class="profile-subsection-heading">
+          <div>
+            <h3>Change password</h3>
+            <p>Confirm your current password before choosing a new one.</p>
+          </div>
         </div>
-      </div>
+        <form id="password-form">
+          <div class="profile-field">
+            <label for="current-password">Current password</label>
+            <input id="current-password" name="currentPassword" type="password" autocomplete="current-password" required>
+          </div>
+          <div class="profile-field">
+            <label for="new-password">New password</label>
+            <input id="new-password" name="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+          </div>
+          <div class="profile-field">
+            <label for="confirm-password">Confirm new password</label>
+            <input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+          </div>
+          <button class="profile-button profile-button-ghost" type="submit">Update password</button>
+        </form>
+      </section>
+
+      <section class="profile-card card" aria-labelledby="preferences-title">
+        <h2 id="preferences-title">Preferences</h2>
+        <div class="profile-field">
+          <label for="theme-preference">Theme</label>
+          <select id="theme-preference">
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+          <p class="profile-hint">System follows your device appearance setting.</p>
+        </div>
+        <div class="profile-field">
+          <label for="default-fuel">Default fuel type</label>
+          <select id="default-fuel"></select>
+        </div>
+        <p class="profile-hint" id="preferences-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="profile-card card profile-stats-card" aria-labelledby="stats-title">
+        <h2 id="stats-title">My stats</h2>
+        <div class="profile-stats">
+          <article class="profile-stat">
+            <span class="profile-stat-label">Reports submitted</span>
+            <strong id="profile-submissions">—</strong>
+          </article>
+          <article class="profile-stat">
+            <span class="profile-stat-label">Rewards points</span>
+            <strong id="profile-points">—</strong>
+          </article>
+          <article class="profile-stat">
+            <span class="profile-stat-label">Approved reports</span>
+            <strong id="profile-approved">—</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="profile-card card profile-reports-card" aria-labelledby="reports-title">
+        <h2 id="reports-title">My reports</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Station</th><th>Report</th><th>Fuel</th><th>Status</th><th>Date</th></tr>
+            </thead>
+            <tbody id="profile-reports"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="profile-card card profile-danger-card" aria-labelledby="danger-title">
+        <h2 id="danger-title">Danger zone</h2>
+        <p>Deleting your account removes private account data and signs you out of all devices. Your shared station reports will remain but be anonymized.</p>
+        <form id="delete-account-form">
+          <div class="profile-field">
+            <label for="delete-password">Confirm your password</label>
+            <input id="delete-password" name="currentPassword" type="password" autocomplete="current-password" required>
+          </div>
+          <div class="profile-field">
+            <label for="delete-confirmation">Type DELETE to confirm</label>
+            <input id="delete-confirmation" name="confirmation" type="text" autocomplete="off" required>
+          </div>
+          <button class="profile-button profile-button-danger" type="submit">Delete account</button>
+        </form>
+      </section>
     </div>
   </main>
-
-  <footer>
-    PetroVision — a prototype crowdsourced fuel price, station locator, and trip cost estimation system.
-  </footer>
 
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>

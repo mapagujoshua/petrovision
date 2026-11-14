@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 import type { User } from "./domain.js";
 import { firebase } from "./firebase.js";
-import { activeSessions, users } from "./store.js";
+import { activeSessionOwners, activeSessions, users } from "./store.js";
 
 const firestore = firebase?.firestore;
 const userCollection = "users";
@@ -85,11 +85,35 @@ export async function saveUser(user: User): Promise<void> {
   users.set(user.id, user);
 }
 
+export async function deleteUserAccount(userId: string): Promise<boolean> {
+  const user = await getUser(userId);
+  if (!user) return false;
+
+  await revokeUserSessions(userId);
+  if (firestore) {
+    const userRef = firestore.collection(userCollection).doc(userId);
+    await firestore.runTransaction(async (transaction) => {
+      const userSnapshot = await transaction.get(userRef);
+      if (!userSnapshot.exists) return;
+      const currentEmail = userSnapshot.data()?.email;
+      const emailRef = typeof currentEmail === "string"
+        ? firestore.collection(emailCollection).doc(emailDocumentId(currentEmail))
+        : undefined;
+      const emailSnapshot = emailRef ? await transaction.get(emailRef) : undefined;
+      transaction.delete(userRef);
+      if (emailRef && emailSnapshot?.data()?.userId === userId) transaction.delete(emailRef);
+    });
+  }
+  users.delete(userId);
+  return true;
+}
+
 export async function createSession(sessionId: string, userId: string): Promise<void> {
   if (firestore) {
     await firestore.collection(sessionCollection).doc(sessionId).create({ userId, createdAt: new Date().toISOString() });
   }
   activeSessions.add(sessionId);
+  activeSessionOwners.set(sessionId, userId);
 }
 
 export async function hasSession(sessionId: string): Promise<boolean> {
@@ -101,4 +125,24 @@ export async function hasSession(sessionId: string): Promise<boolean> {
 export async function revokeSession(sessionId: string): Promise<void> {
   if (firestore) await firestore.collection(sessionCollection).doc(sessionId).delete();
   activeSessions.delete(sessionId);
+  activeSessionOwners.delete(sessionId);
+}
+
+export async function revokeUserSessions(userId: string): Promise<void> {
+  if (firestore) {
+    const snapshot = await firestore.collection(sessionCollection).where("userId", "==", userId).get();
+    await Promise.all(snapshot.docs.map((document) => document.ref.delete()));
+    snapshot.docs.forEach((document) => {
+      activeSessions.delete(document.id);
+      activeSessionOwners.delete(document.id);
+    });
+    return;
+  }
+
+  for (const [sessionId, ownerId] of activeSessionOwners) {
+    if (ownerId === userId) {
+      activeSessions.delete(sessionId);
+      activeSessionOwners.delete(sessionId);
+    }
+  }
 }

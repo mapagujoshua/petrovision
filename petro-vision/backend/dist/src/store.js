@@ -35,6 +35,7 @@ export const notificationSubscriptions = new Map();
 export const notifications = new Map();
 export const auditLogs = new Map();
 export const activeSessions = new Set();
+export const activeSessionOwners = new Map();
 export function resetStore() {
     users.clear();
     vehicles.clear();
@@ -70,4 +71,5 @@ export function resetStore() {
     notifications.clear();
     auditLogs.clear();
     activeSessions.clear();
+    activeSessionOwners.clear();
 }

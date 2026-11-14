@@ -6,8 +6,6 @@
    ============================================================ */
 
 requireAuth();
-paintNavUser();
-updateNavigation();
 
 // Each feature card: title, one-line description, and the
 // page it links to. Kept as one array so it's easy to add a
@@ -42,20 +40,3 @@ document.getElementById("feature-grid").innerHTML = FEATURES.map(f => `
     document.getElementById("banner").innerHTML = `<div class="banner banner-danger">${escapeHtml(error.message)}</div>`;
   }
 })();
-
-// Update navigation based on auth state
-function updateNavigation() {
-  const session = getSession();
-  const navLogin = document.getElementById("nav-login");
-  const navProfile = document.getElementById("nav-profile");
-  const navUsername = document.getElementById("nav-username");
-
-  if (session?.user) {
-    if (navLogin) navLogin.style.display = "none";
-    if (navProfile) navProfile.style.display = "inline-flex";
-    if (navUsername) navUsername.textContent = session.user.displayName?.split(/\s+/)[0] || "User";
-  } else {
-    if (navLogin) navLogin.style.display = "inline-block";
-    if (navProfile) navProfile.style.display = "none";
-  }
-}

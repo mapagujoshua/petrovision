@@ -7,7 +7,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { z, ZodError } from "zod";
 import { firebase } from "./firebase.js";
-import { createSession, createUser, findUserByEmail, getAllUsers, getUser, hasSession, revokeSession, saveUser } from "./auth-store.js";
+import { createSession, createUser, deleteUserAccount, findUserByEmail, getAllUsers, getUser, hasSession, revokeSession, revokeUserSessions, saveUser } from "./auth-store.js";
 import { deleteRecord, loadCollection, loadMatchingRecords, loadOwnedRecords, loadRecord, saveRecord } from "./feature-store.js";
 import { auditLogs, availabilityReports, notifications, notificationSubscriptions, priceReports, refuels, redemptions, rewardAccounts, rewardRules, rewards, stations, trips, users, vehicles } from "./store.js";
 const app = express();
@@ -127,6 +127,43 @@ async function recordAudit(actorUserId, action, entity, entityId, details = {}) 
     };
     await saveRecord("auditLogs", auditLogs, log.id, log);
     return log;
+}
+async function deleteUserPrivateRecords(collectionName, records, userId) {
+    const ownedRecords = await loadMatchingRecords(collectionName, records, "userId", userId);
+    await Promise.all(ownedRecords.map((record) => deleteRecord(collectionName, records, record.id)));
+}
+async function anonymizeUserContributions(userId) {
+    const [userPriceReports, userAvailabilityReports, userStations, userAuditLogs] = await Promise.all([
+        loadMatchingRecords("priceReports", priceReports, "userId", userId),
+        loadMatchingRecords("availabilityReports", availabilityReports, "userId", userId),
+        loadMatchingRecords("stations", stations, "createdBy", userId),
+        loadMatchingRecords("auditLogs", auditLogs, "actorUserId", userId)
+    ]);
+    await Promise.all([
+        ...userPriceReports.map((report) => saveRecord("priceReports", priceReports, report.id, { ...report, userId: "deleted-account" })),
+        ...userAvailabilityReports.map((report) => saveRecord("availabilityReports", availabilityReports, report.id, { ...report, userId: "deleted-account" })),
+        ...userStations.map((station) => saveRecord("stations", stations, station.id, { ...station, createdBy: "deleted-account" })),
+        ...userAuditLogs.map((log) => saveRecord("auditLogs", auditLogs, log.id, {
+            ...log,
+            actorUserId: "deleted-account",
+            actorEmail: "Deleted user"
+        }))
+    ]);
+}
+async function deleteUserPrivateData(userId) {
+    const [userVehicles, rewardAccountRecord] = await Promise.all([
+        loadOwnedRecords("vehicles", vehicles, userId),
+        loadRecord("rewardAccounts", rewardAccounts, userId)
+    ]);
+    await Promise.all([
+        ...userVehicles.map((vehicle) => deleteRecord("vehicles", vehicles, vehicle.id)),
+        deleteUserPrivateRecords("trips", trips, userId),
+        deleteUserPrivateRecords("refuels", refuels, userId),
+        deleteUserPrivateRecords("redemptions", redemptions, userId),
+        deleteUserPrivateRecords("notificationSubscriptions", notificationSubscriptions, userId),
+        deleteUserPrivateRecords("notifications", notifications, userId),
+        ...(rewardAccountRecord ? [deleteRecord("rewardAccounts", rewardAccounts, userId)] : [])
+    ]);
 }
 async function sendPriceAlerts(report) {
     if (report.status !== "approved" || !report.verified)
@@ -255,6 +292,67 @@ app.put("/api/users/me", authenticate, async (req, res) => {
         user.displayName = input.displayName;
     await saveUser(user);
     return res.json(publicUser(user));
+});
+app.get("/api/users/me/reports", authenticate, async (req, res) => {
+    const userId = req.auth.userId;
+    const [userPriceReports, userAvailabilityReports] = await Promise.all([
+        loadMatchingRecords("priceReports", priceReports, "userId", userId),
+        loadMatchingRecords("availabilityReports", availabilityReports, "userId", userId),
+        loadCollection("stations", stations, true)
+    ]);
+    const reports = [
+        ...userPriceReports.map((report) => ({
+            id: report.id,
+            type: "Fuel price",
+            stationName: stations.get(report.stationId)?.name ?? "Station",
+            fuelType: report.fuelType,
+            price: report.price,
+            status: report.status,
+            reportedAt: report.reportedAt
+        })),
+        ...userAvailabilityReports.map((report) => ({
+            id: report.id,
+            type: "Availability",
+            stationName: stations.get(report.stationId)?.name ?? "Station",
+            fuelType: report.fuelType,
+            status: report.reviewStatus ?? "pending",
+            reportedAt: report.reportedAt
+        }))
+    ].sort((a, b) => b.reportedAt.localeCompare(a.reportedAt));
+    return res.json(reports);
+});
+app.post("/api/users/me/password", authenticate, async (req, res) => {
+    const input = validate(z.object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(8).max(128)
+    }), req.body);
+    const user = await getUser(req.auth.userId);
+    if (!user)
+        return res.status(404).json({ error: "User not found" });
+    if (!(await bcrypt.compare(input.currentPassword, user.passwordHash))) {
+        return res.status(400).json({ error: "Current password is incorrect" });
+    }
+    user.passwordHash = await bcrypt.hash(input.newPassword, 10);
+    await saveUser(user);
+    await revokeUserSessions(user.id);
+    return res.status(204).end();
+});
+app.delete("/api/users/me", authenticate, async (req, res) => {
+    const input = validate(z.object({
+        currentPassword: z.string().min(1),
+        confirmation: z.literal("DELETE")
+    }), req.body);
+    const user = await getUser(req.auth.userId);
+    if (!user)
+        return res.status(404).json({ error: "User not found" });
+    if (!(await bcrypt.compare(input.currentPassword, user.passwordHash))) {
+        return res.status(400).json({ error: "Password is incorrect" });
+    }
+    await anonymizeUserContributions(user.id);
+    await deleteUserPrivateData(user.id);
+    if (!(await deleteUserAccount(user.id)))
+        return res.status(404).json({ error: "User not found" });
+    return res.status(204).end();
 });
 app.get("/api/admin/users", authenticate, requireAdmin, async (_req, res) => {
     const allUsers = await getAllUsers();

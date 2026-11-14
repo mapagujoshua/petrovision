@@ -2,23 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+(() => {
+  let preference;
+  try { preference = localStorage.getItem("petrovision-theme"); } catch (error) { preference = null; }
+  const theme = preference === "light" || preference === "dark"
+    ? preference
+    : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.documentElement.dataset.theme = theme;
+})();
+</script>
 <title>PetroVision — Station & Rewards Management</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app-nav.css">
+<script src="components/app-nav.js"></script>
 </head>
 <body>
-<header class="navbar">
-  <a href="home.html" class="logo"> Petro<span class="accent">Vision</span> <small style="font-size:.65rem;opacity:.7">ADMIN</small></a>
-  <nav class="nav-links"><ul>
-    <li><a href="admin-dashboard.html">Audit & Approval</a></li>
-    <li><a href="admin-management.html" class="active">Stations & Rewards</a></li>
-    <li><a href="home.html">Home</a></li>
-    <li><a href="map.html">Map</a></li>
-    <li><a href="dashboard.html">User View</a></li>
-  </ul></nav>
-  <a href="#" class="profile-link" id="logout-link">Logout</a>
-</header>
+<div id="app-nav"></div>
 <main class="container">
   <div class="page-head"><h1>Station & Rewards Management</h1><p>Manage verified station records and control how many points users earn from contributions.</p></div>
   <div id="banner"></div>

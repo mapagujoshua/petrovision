@@ -32,6 +32,8 @@ The API listens on `http://localhost:3000` by default. Check `GET /health` for r
 
 Price and availability contributions earn points using the configured reward rules. Admins manage reward items and point rules through the admin routes. To make the first admin, set `ADMIN_EMAIL` before registering that email address.
 
+Drivers can view their own fuel-price and availability reports through the profile API. Password changes require the current password and revoke all active sessions. Account deletion requires the current password and an explicit confirmation; private account data is removed, while shared fuel-price and availability reports are retained with contributor attribution anonymized.
+
 ## Deploy to Vercel
 
 Import the repository as a Vercel project and set its **Root Directory** to
@@ -81,7 +83,9 @@ no redemption-history endpoint is currently exposed.
 | POST | `/api/auth/login` | Sign in |
 | POST | `/api/auth/refresh` | Rotate session tokens |
 | POST | `/api/auth/logout` | Revoke current session |
-| GET, PUT | `/api/users/me` | Read or update driver profile |
+| GET, PUT, DELETE | `/api/users/me` | Read, update, or delete driver profile |
+| GET | `/api/users/me/reports` | List the authenticated driver's reports |
+| POST | `/api/users/me/password` | Change password and revoke active sessions |
 | GET | `/api/admin/users` | List users (admin) |
 | PUT | `/api/admin/users/:id/role` | Change role or suspend account (admin) |
 | GET, POST | `/api/vehicles` | List or add vehicles |
