@@ -263,9 +263,9 @@ function makePriceMarker(station, record, lowestPrices) {
   const icon = L.divIcon({
     className: "price-marker-host",
     html: `<span class="price-marker${lowest ? " is-lowest" : ""}">${formatPrice(record.price)}</span>`,
-    iconSize: [82, 30],
-    iconAnchor: [41, 15],
-    popupAnchor: [0, -16]
+    iconSize: [100, 44],
+    iconAnchor: [50, 22],
+    popupAnchor: [0, -22]
   });
   return L.marker([station.lat, station.lng], { icon, title: `${station.name}, ${formatPrice(record.price)}` })
     .bindPopup(createStationPopup(station), { maxWidth: 320 });
@@ -277,8 +277,8 @@ function makeClusterMarker(stations) {
     icon: L.divIcon({
       className: "cluster-marker-host",
       html: `<span class="cluster-marker" aria-label="${stations.length} stations">${stations.length}</span>`,
-      iconSize: [40, 40],
-      iconAnchor: [20, 20]
+      iconSize: [44, 44],
+      iconAnchor: [22, 22]
     }),
     title: `${stations.length} fuel stations`
   });

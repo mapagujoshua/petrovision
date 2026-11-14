@@ -1,73 +1,115 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script>
-(() => {
-  let preference;
-  try { preference = localStorage.getItem("petrovision-theme"); } catch (error) { preference = null; }
-  const theme = preference === "light" || preference === "dark"
-    ? preference
-    : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  document.documentElement.dataset.theme = theme;
-})();
-</script>
-<title>PetroVision — Rewards</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/app-nav.css">
-<script src="components/app-nav.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+  (() => {
+    let preference;
+    try { preference = localStorage.getItem("petrovision-theme"); } catch (error) { preference = null; }
+    const theme = preference === "light" || preference === "dark"
+      ? preference
+      : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+  })();
+  </script>
+  <title>PetroVision — Rewards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app-pages.css">
+  <link rel="stylesheet" href="css/app-nav.css">
+  <script src="components/app-nav.js"></script>
 </head>
 <body>
-
   <div id="app-nav"></div>
+  <main class="page-main container">
+    <header class="page-header">
+      <div class="page-header-copy">
+        <h1>Rewards</h1>
+        <p>Every useful contribution helps drivers make more informed decisions.</p>
+      </div>
+    </header>
 
-  <main class="container">
-    <div class="page-head">
-      <h1>Gamified Rewards System</h1>
-      <p>Earn points for every accurate contribution. The more the community trusts your reports, the higher you climb.</p>
-    </div>
-
-    <div class="grid-2" style="margin-bottom:26px;">
-      <div class="card">
-        <h3>Your progress</h3>
-        <div style="display:flex; align-items:center; gap:14px; margin-bottom:6px;">
-          <span class="tier-badge" id="my-badge" style="background:#94A3B8;">Newbie</span>
-          <span style="font-family:var(--font-heading); font-size:1.4rem; font-weight:700;" id="my-points">0 pts</span>
+    <div id="banner" aria-live="polite"></div>
+    <section class="reward-hero" aria-label="Rewards progress">
+      <div class="card reward-balance-card">
+        <div class="reward-balance-top">
+          <div>
+            <span class="eyebrow">Your balance</span>
+            <strong class="reward-points" id="my-points">0 pts</strong>
+          </div>
+          <span class="tier-badge" id="my-badge">Newbie</span>
         </div>
-        <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%;"></div></div>
-        <p class="hint" id="progress-hint"></p>
+        <div class="reward-progress">
+          <div class="reward-progress-heading">
+            <span id="progress-hint">Loading your next milestone…</span>
+            <span id="progress-value">0%</span>
+          </div>
+          <progress id="progress-fill" max="100" value="0" aria-label="Progress to next reward"></progress>
+        </div>
       </div>
+      <div class="card reward-note-card">
+        <span class="eyebrow">Good to know</span>
+        <h2>Accuracy earns trust.</h2>
+        <p>Points are awarded for eligible reports and account activity. Approved reports help keep the map useful for everyone.</p>
+        <a class="text-action" href="map.html">Explore the map <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
 
-      <div class="card">
-        <h3>How to earn points</h3>
-        <ul id="points-guide" style="margin:0; padding-left:20px; color:var(--ink-soft); font-size:0.9rem;"></ul>
+    <section class="reward-catalog-section">
+      <div class="section-heading">
+        <div>
+          <h2>Rewards to redeem</h2>
+          <p>Use your points toward available community rewards.</p>
+        </div>
       </div>
-    </div>
+      <div class="reward-grid" id="reward-list" aria-live="polite" aria-busy="true">
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+      </div>
+    </section>
 
-    <div class="grid-2">
+    <section class="reward-lower-grid">
       <div class="card">
-        <h3>Leaderboard</h3>
-        <div id="leaderboard"></div>
+        <div class="card-header">
+          <div>
+            <h2>Ways to earn</h2>
+            <p class="hint">Small actions that improve the shared data.</p>
+          </div>
+        </div>
+        <ul class="points-guide" id="points-guide" aria-live="polite"></ul>
       </div>
-
       <div class="card">
-        <h3>Your recent activity</h3>
-        <div id="activity-feed" class="stack" style="gap:10px;"></div>
+        <div class="card-header">
+          <div>
+            <h2>Recent activity</h2>
+            <p class="hint">Your latest point-earning actions.</p>
+          </div>
+        </div>
+        <div id="activity-feed" class="activity-feed" aria-live="polite">
+          <div class="skeleton"></div>
+        </div>
       </div>
-    </div>
+    </section>
+    <section class="card leaderboard-card">
+      <div class="card-header">
+        <div>
+          <h2>Community leaders</h2>
+          <p class="hint">Contributors earning trust across PetroVision.</p>
+        </div>
+      </div>
+      <div id="leaderboard" aria-live="polite"><div class="skeleton"></div></div>
+    </section>
   </main>
-
-  <footer>
-    PetroVision — a prototype crowdsourced fuel price, station locator, and trip cost estimation system.
+  <footer class="app-footer">
+    <span>PetroVision, a prototype crowdsourced fuel price, station locator, and trip cost estimation system</span>
+    <span>Rewards and point rules may change.</span>
   </footer>
-
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
+  <script src="components/app-ui.js"></script>
   <script src="js/rewards.js"></script>
 </body>
 </html>

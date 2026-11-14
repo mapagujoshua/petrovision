@@ -1,80 +1,121 @@
-/* ============================================================
-   PetroVision — js/garage.js
-   ------------------------------------------------------------
-   add/list/delete vehicles for the logged-in user through the API.
-   ============================================================ */
-
-const username = requireAuth();
+requireAuth();
 
 const typeSelect = document.getElementById("v-type");
 const fuelSelect = document.getElementById("v-fuel");
-const effInput = document.getElementById("v-eff");
+const efficiencyInput = document.getElementById("v-eff");
+const vehicleList = document.getElementById("vehicle-list");
+const banner = document.getElementById("banner");
+const vehicleForm = document.getElementById("vehicle-form");
 
-VEHICLE_TYPES.forEach(t => typeSelect.innerHTML += `<option value="${t}">${t}</option>`);
-FUEL_TYPES.forEach(f => fuelSelect.innerHTML += `<option value="${f}">${f}</option>`);
+VEHICLE_TYPES.forEach(type => typeSelect.add(new Option(type, type)));
+FUEL_TYPES.forEach(fuel => fuelSelect.add(new Option(fuel, fuel)));
 
-// Pre-fill the efficiency field with a sensible starting number
-// whenever the vehicle type changes.
 function suggestEfficiency() {
-  effInput.value = DEFAULT_EFFICIENCY[typeSelect.value] || "";
+  efficiencyInput.value = DEFAULT_EFFICIENCY[typeSelect.value] || "";
 }
-typeSelect.addEventListener("change", suggestEfficiency);
-suggestEfficiency();
 
-async function renderVehicles() {
-  const vehicles = await getVehicles();
-  const list = document.getElementById("vehicle-list");
+function renderVehicles(vehicles) {
+  vehicleList.setAttribute("aria-busy", "false");
+  document.getElementById("vehicle-count").textContent = vehicles.length.toLocaleString();
+  const efficiency = vehicles.length
+    ? vehicles.reduce((sum, vehicle) => sum + Number(vehicle.efficiency), 0) / vehicles.length
+    : null;
+  document.getElementById("summary-efficiency").textContent = efficiency ? `${efficiency.toFixed(1)} km/L` : "—";
+  document.getElementById("fuel-type-count").textContent =
+    new Set(vehicles.map(vehicle => vehicle.fuelType)).size.toLocaleString();
 
-  if (vehicles.length === 0) {
-    list.innerHTML = `<p class="hint">No vehicles yet — add your first one to unlock the Trip Cost Estimator.</p>`;
+  if (!vehicles.length) {
+    vehicleList.innerHTML = `
+      <div class="empty-state card vehicle-empty">
+        <h2>Your garage is empty</h2>
+        <p>Add a vehicle to unlock personalized trip cost estimates.</p>
+        <a class="btn btn-primary" href="#vehicle-form">Add a vehicle</a>
+      </div>
+    `;
     return;
   }
 
-  list.innerHTML = vehicles.map(v => `
-    <div class="card" style="padding:16px; display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <div style="font-weight:700;">${escapeHtml(v.name)}</div>
-        <div class="hint">${escapeHtml(v.type)} · ${escapeHtml(v.fuelType)} · ${v.efficiency} km/L</div>
+  vehicleList.innerHTML = vehicles.map(vehicle => `
+    <article class="card vehicle-card">
+      <div class="vehicle-card-header">
+        <div>
+          <h3>${escapeHtml(vehicle.name)}</h3>
+          <p class="vehicle-card-type">${escapeHtml(vehicle.type)} · ${escapeHtml(vehicle.fuelType)}</p>
+        </div>
+        <details class="vehicle-actions">
+          <summary class="icon-button" aria-label="Actions for ${escapeHtml(vehicle.name)}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+          </summary>
+          <div class="vehicle-action-menu">
+            <button type="button" class="vehicle-remove" data-id="${escapeHtml(vehicle.id)}">Remove vehicle</button>
+          </div>
+        </details>
       </div>
-      <button class="btn btn-outline btn-sm" data-id="${v.id}">Remove</button>
-    </div>
+      <div class="vehicle-card-footer">
+        <span class="vehicle-efficiency"><strong>${Number(vehicle.efficiency).toFixed(1)}</strong><span>km per liter</span></span>
+        <span class="badge-neutral">${escapeHtml(vehicle.fuelType)}</span>
+      </div>
+    </article>
   `).join("");
-
-  list.querySelectorAll("button[data-id]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      try {
-        await deleteVehicle(btn.dataset.id);
-        await renderVehicles();
-      } catch (error) {
-        document.getElementById("banner").innerHTML = `<div class="banner banner-danger">${escapeHtml(error.message)}</div>`;
-        btn.disabled = false;
-      }
-    });
-  });
 }
-renderVehicles().catch(error => {
-  document.getElementById("banner").innerHTML = `<div class="banner banner-danger">${escapeHtml(error.message)}</div>`;
-});
-document.getElementById("vehicle-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const submit = event.currentTarget.querySelector("button[type=submit]");
-  submit.disabled = true;
+
+async function loadVehicles() {
   try {
-    await addVehicle({
-    name: document.getElementById("v-name").value.trim(),
-    type: typeSelect.value,
-    fuelType: fuelSelect.value,
-    efficiency: effInput.value,
-  });
-  document.getElementById("banner").innerHTML =
-    `<div class="banner banner-success">Vehicle added! Points have been added to your rewards account.</div>`;
-  document.getElementById("vehicle-form").reset();
-  suggestEfficiency();
-    await renderVehicles();
+    renderVehicles(await getVehicles());
   } catch (error) {
-    document.getElementById("banner").innerHTML = `<div class="banner banner-danger">${escapeHtml(error.message)}</div>`;
-  } finally {
-    submit.disabled = false;
+    vehicleList.setAttribute("aria-busy", "false");
+    vehicleList.innerHTML = `
+      <div class="banner banner-danger" role="alert">
+        ${escapeHtml(error.message)}
+        <button class="btn btn-secondary btn-sm" type="button" data-retry-vehicles>Retry</button>
+      </div>
+    `;
+  }
+}
+
+typeSelect.addEventListener("change", suggestEfficiency);
+suggestEfficiency();
+
+vehicleList.addEventListener("click", async event => {
+  if (event.target.closest("[data-retry-vehicles]")) {
+    loadVehicles();
+    return;
+  }
+  const button = event.target.closest("[data-id]");
+  if (!button) return;
+  window.PetroVisionUI?.setBusy(button, true);
+  try {
+    await deleteVehicle(button.dataset.id);
+    window.PetroVisionUI?.toast("Vehicle removed from your garage.", "success");
+    await loadVehicles();
+  } catch (error) {
+    banner.innerHTML = `<div class="banner banner-danger" role="alert">${escapeHtml(error.message)}</div>`;
+    window.PetroVisionUI?.toast(error.message || "Could not remove this vehicle.", "error");
+    window.PetroVisionUI?.setBusy(button, false);
   }
 });
+
+vehicleForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const submit = vehicleForm.querySelector('button[type="submit"]');
+  window.PetroVisionUI?.setBusy(submit, true);
+  try {
+    await addVehicle({
+      name: document.getElementById("v-name").value.trim(),
+      type: typeSelect.value,
+      fuelType: fuelSelect.value,
+      efficiency: efficiencyInput.value
+    });
+    vehicleForm.reset();
+    suggestEfficiency();
+    window.PetroVisionUI?.toast("Vehicle added to your garage.", "success");
+    await loadVehicles();
+  } catch (error) {
+    banner.innerHTML = `<div class="banner banner-danger" role="alert">${escapeHtml(error.message)}</div>`;
+    window.PetroVisionUI?.toast(error.message || "Could not add this vehicle.", "error");
+  } finally {
+    window.PetroVisionUI?.setBusy(submit, false);
+  }
+});
+
+loadVehicles();

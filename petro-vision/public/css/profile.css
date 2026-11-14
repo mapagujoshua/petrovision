@@ -274,6 +274,18 @@
     grid-template-columns: 1fr;
   }
 
+  .profile-reports-card table {
+    min-width: 0;
+  }
+
+  .profile-report-empty {
+    justify-content: center;
+  }
+
+  .profile-report-empty::before {
+    content: none;
+  }
+
   .profile-stats-card,
   .profile-reports-card {
     grid-column: auto;

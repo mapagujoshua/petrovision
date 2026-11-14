@@ -22,11 +22,11 @@ const VEHICLE_TYPES = ["Motorcycle", "Sedan", "Hatchback", "SUV", "Van", "Pickup
 const DEFAULT_EFFICIENCY = { Motorcycle: 35, Sedan: 12, Hatchback: 14, SUV: 9, Van: 8, "Pickup Truck": 10 };
 const POINTS = { signupBonus: 5, newStation: 10, availabilityUpdate: 5, refuelLog: 5, tripLog: 5, newVehicle: 5, newAlert: 2 };
 const BADGES = [
-  { min: 0, name: "Newbie", color: "#94A3B8" },
-  { min: 100, name: "Contributor", color: "#3B82F6" },
-  { min: 300, name: "Trusted Reporter", color: "#2F9E6B" },
-  { min: 700, name: "Fuel Hero", color: "#F2732B" },
-  { min: 1500, name: "Legend", color: "#A855F7" },
+  { min: 0, name: "Newbie" },
+  { min: 100, name: "Contributor" },
+  { min: 300, name: "Trusted Reporter" },
+  { min: 700, name: "Fuel Hero" },
+  { min: 1500, name: "Legend" },
 ];
 const configuredApiUrl = window.PETROVISION_API_URL?.trim();
 const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1";

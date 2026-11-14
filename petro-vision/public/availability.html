@@ -1,73 +1,97 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script>
-(() => {
-  let preference;
-  try { preference = localStorage.getItem("petrovision-theme"); } catch (error) { preference = null; }
-  const theme = preference === "light" || preference === "dark"
-    ? preference
-    : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  document.documentElement.dataset.theme = theme;
-})();
-</script>
-<title>PetroVision — Availability Tracker</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/app-nav.css">
-<script src="components/app-nav.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+  (() => {
+    let preference;
+    try { preference = localStorage.getItem("petrovision-theme"); } catch (error) { preference = null; }
+    const theme = preference === "light" || preference === "dark"
+      ? preference
+      : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+  })();
+  </script>
+  <title>PetroVision — Availability</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app-pages.css">
+  <link rel="stylesheet" href="css/app-nav.css">
+  <script src="components/app-nav.js"></script>
 </head>
 <body>
-
   <div id="app-nav"></div>
+  <main class="page-main container">
+    <header class="page-header">
+      <div class="page-header-copy">
+        <h1>Fuel availability</h1>
+        <p>Check recent stock reports and share an update from your latest stop.</p>
+      </div>
+    </header>
 
-  <main class="container">
-    <div class="page-head">
-      <h1>Fuel Availability Tracker</h1>
-      <p>See which stations currently have stock. Noticed a change at your last stop? Update it here and help the next driver.</p>
-    </div>
+    <div id="banner" aria-live="polite"></div>
 
-    <div id="banner"></div>
+    <section class="summary-grid availability-summary" aria-label="Availability summary">
+      <div class="summary-item"><span>Stations listed</span><strong id="summary-total">—</strong></div>
+      <div class="summary-item"><span>In stock</span><strong id="summary-stock">—</strong></div>
+      <div class="summary-item"><span>Out of stock</span><strong id="summary-out">—</strong></div>
+    </section>
 
-    <div class="card" style="margin-bottom:20px;">
-      <div class="field-row">
-        <div class="field" style="margin-bottom:0;">
-          <label for="filter-fuel">Fuel type</label>
-          <select id="filter-fuel"><option value="">All fuel types</option></select>
-        </div>
-        <div class="field" style="margin-bottom:0;">
-          <label for="filter-status">Availability</label>
-          <select id="filter-status">
-            <option value="">All statuses</option>
-            <option value="In Stock">In Stock</option>
-            <option value="Low Stock">Low Stock</option>
-            <option value="Out of Stock">Out of Stock</option>
-          </select>
+    <section class="toolbar availability-toolbar" aria-label="Filter availability">
+      <div class="filter-block">
+        <span class="toolbar-label">Fuel</span>
+        <div class="filter-pills" role="group" aria-label="Filter by fuel type">
+          <button class="filter-pill is-active" type="button" data-fuel-filter="" aria-pressed="true">All fuels</button>
+          <button class="filter-pill" type="button" data-fuel-filter="Diesel" aria-pressed="false">Diesel</button>
+          <button class="filter-pill" type="button" data-fuel-filter="Gasoline (RON 95)" aria-pressed="false">Unleaded</button>
+          <button class="filter-pill" type="button" data-fuel-filter="Gasoline (RON 97)" aria-pressed="false">Premium</button>
         </div>
       </div>
-    </div>
+      <div class="filter-block">
+        <span class="toolbar-label">Availability</span>
+        <div class="filter-pills" role="group" aria-label="Filter by availability">
+          <button class="filter-pill is-active" type="button" data-status-filter="" aria-pressed="true">All</button>
+          <button class="filter-pill" type="button" data-status-filter="In Stock" aria-pressed="false">In stock</button>
+          <button class="filter-pill" type="button" data-status-filter="Low Stock" aria-pressed="false">Low</button>
+          <button class="filter-pill" type="button" data-status-filter="Out of Stock" aria-pressed="false">Out</button>
+        </div>
+      </div>
+      <label class="toolbar-search">
+        <span class="sr-only">Search station or area</span>
+        <input id="station-search" type="search" placeholder="Search station or area" autocomplete="off">
+      </label>
+      <select id="filter-fuel" class="visually-hidden" tabindex="-1" aria-hidden="true"><option value="">All fuels</option></select>
+      <select id="filter-status" class="visually-hidden" tabindex="-1" aria-hidden="true">
+        <option value="">All statuses</option>
+        <option value="In Stock">In Stock</option>
+        <option value="Low Stock">Low Stock</option>
+        <option value="Out of Stock">Out of Stock</option>
+      </select>
+    </section>
 
-    <div class="card table-wrap">
+    <section class="responsive-table" aria-label="Fuel availability reports">
       <table>
         <thead>
-          <tr><th>Station</th><th>City</th><th>Fuel Type</th><th>Price</th><th>Availability</th><th>Updated</th><th></th></tr>
+          <tr><th>Station</th><th>Fuel</th><th class="numeric-cell">Price</th><th>Availability</th><th>Updated</th><th><span class="sr-only">Actions</span></th></tr>
         </thead>
-        <tbody id="availability-body"></tbody>
+        <tbody id="availability-body" aria-live="polite" aria-busy="true">
+          <tr class="table-skeleton-row" aria-hidden="true"><td colspan="6"><div class="skeleton"></div></td></tr>
+          <tr class="table-skeleton-row" aria-hidden="true"><td colspan="6"><div class="skeleton"></div></td></tr>
+          <tr class="table-skeleton-row" aria-hidden="true"><td colspan="6"><div class="skeleton"></div></td></tr>
+        </tbody>
       </table>
-    </div>
+    </section>
   </main>
-
-  <footer>
-    PetroVision — a prototype crowdsourced fuel price, station locator, and trip cost estimation system.
+  <footer class="app-footer">
+    <span>PetroVision, a prototype crowdsourced fuel price, station locator, and trip cost estimation system</span>
+    <span>Availability is community reported and may change.</span>
   </footer>
-
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
+  <script src="components/app-ui.js"></script>
   <script src="js/availability.js"></script>
 </body>
 </html>

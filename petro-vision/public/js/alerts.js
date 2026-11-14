@@ -1,81 +1,116 @@
-/* ============================================================
-   PetroVision — js/alerts.js
-   ------------------------------------------------------------
-   Creates and lists Fuel Price Alerts. Each alert is checked
-   against the selected station and its latest crowdsourced price.
-   ============================================================ */
-
-const username = requireAuth();
+requireAuth();
 
 const fuelSelect = document.getElementById("a-fuel");
 const stationSelect = document.getElementById("a-station");
-FUEL_TYPES.forEach(f => fuelSelect.innerHTML += `<option value="${f}">${f}</option>`);
-
+const alertList = document.getElementById("alert-list");
+const alertForm = document.getElementById("alert-form");
+const banner = document.getElementById("banner");
 let stations = [];
-async function renderAlerts() {
-  const alerts = await getAlerts();
-  const list = document.getElementById("alert-list");
 
-  if (alerts.length === 0) {
-    list.innerHTML = `<p class="hint">No alerts yet — create one to get notified of a price match.</p>`;
+FUEL_TYPES.forEach(fuel => fuelSelect.add(new Option(fuel, fuel)));
+
+function renderAlerts(alerts) {
+  alertList.setAttribute("aria-busy", "false");
+  if (!alerts.length) {
+    alertList.innerHTML = `
+      <div class="empty-state card">
+        <h2>No alerts yet</h2>
+        <p>Create a threshold to keep an eye on a station’s reported fuel price.</p>
+        <a class="btn btn-primary" href="#alert-form">Create an alert</a>
+      </div>
+    `;
     return;
   }
 
-  list.innerHTML = alerts.map(a => {
-    const match = checkAlert(a, stations);
-    const conditionText = a.condition === "below" ? "drops below" : "rises above";
+  const groups = [
+    { key: "below", title: "Price drops below" },
+    { key: "above", title: "Price rises above" }
+  ];
+  alertList.innerHTML = groups.map(group => {
+    const items = alerts.filter(alert => (alert.condition || "below") === group.key);
+    if (!items.length) return "";
     return `
-      <div class="card" style="padding:14px 16px;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <div>
-            <strong>${escapeHtml(a.fuelType)}</strong> at ${escapeHtml(match?.name || "selected station")} ${conditionText} ₱${Number(a.maxPrice).toFixed(2)}
-          </div>
-          <button class="btn btn-outline btn-sm" data-id="${a.id}">Delete</button>
-        </div>
-        ${match
-          ? `<div class="banner banner-success" style="margin:10px 0 0;">
-               Triggered: ${escapeHtml(match.name)} (${escapeHtml(match.city)}) is at ₱${match.price.toFixed(2)}
-             </div>`
-          : `<p class="hint" style="margin-top:8px;">No station matches this yet.</p>`}
-      </div>
+      <section class="alert-group" aria-label="${group.title}">
+        <h3>${group.title}</h3>
+        ${items.map(alert => {
+          const match = checkAlert(alert, stations);
+          const station = match?.name || stations.find(item => item.id === alert.stationId)?.name || "Selected station";
+          return `
+            <article class="card alert-card">
+              <div class="alert-card-heading">
+                <div>
+                  <h3 class="alert-card-title">${escapeHtml(station)}</h3>
+                  <p class="alert-card-description">${escapeHtml(alert.fuelType)} · ${group.key === "below" ? "Below" : "Above"} ₱${Number(alert.maxPrice).toFixed(2)}/L</p>
+                </div>
+                <span class="status-badge ${match ? "is-good" : ""}">${match ? "Price matched" : "Monitoring"}</span>
+              </div>
+              ${match
+                ? `<p class="alert-triggered">Reported at ₱${Number(match.price).toFixed(2)}/L in ${escapeHtml(match.city || "this area")}.</p>`
+                : ""}
+              <div class="alert-card-actions">
+                <button class="btn btn-danger btn-sm" type="button" data-delete-alert="${escapeHtml(alert.id)}">Delete alert</button>
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </section>
     `;
   }).join("");
-
-  list.querySelectorAll("button[data-id]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      try {
-        await deleteAlert(btn.dataset.id);
-        await renderAlerts();
-      } catch (error) {
-        document.getElementById("banner").innerHTML = `<div class="banner banner-danger">${escapeHtml(error.message)}</div>`;
-        btn.disabled = false;
-      }
-    });
-  });
 }
-(async function initializeAlerts() {
+
+async function loadAlerts() {
+  alertList.setAttribute("aria-busy", "true");
   try {
-    stations = await getStations();
-    const uniqueStations = [...new Map(stations.filter(s => s.fuelType && s.price > 0).map(s => [s.id, s])).values()];
-    stationSelect.innerHTML += uniqueStations.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)} — ${escapeHtml(s.city)}</option>`).join("");
+    const [loadedStations, alerts] = await Promise.all([getStations(), getAlerts()]);
+    stations = loadedStations;
+    const uniqueStations = [...new Map(
+      stations.filter(station => station.fuelType && station.price > 0).map(station => [station.id, station])
+    ).values()];
+    stationSelect.replaceChildren(new Option("Choose a station", ""));
+    uniqueStations.forEach(station => stationSelect.add(new Option(
+      `${station.name} — ${station.city}`,
+      station.id
+    )));
     if (!uniqueStations.length) {
       stationSelect.disabled = true;
-      document.getElementById("alert-form").querySelector("button[type=submit]").disabled = true;
-      document.getElementById("banner").innerHTML = `<div class="banner banner-info">Report a station price before creating an alert.</div>`;
+      alertForm.querySelector('button[type="submit"]').disabled = true;
+      banner.innerHTML = `<div class="banner banner-info">Report a station price before creating an alert.</div>`;
+    } else {
+      stationSelect.disabled = false;
+      alertForm.querySelector('button[type="submit"]').disabled = false;
+      banner.replaceChildren();
     }
-    await renderAlerts();
+    renderAlerts(alerts);
   } catch (error) {
-    document.getElementById("banner").innerHTML = `<div class="banner banner-danger">${escapeHtml(error.message)}</div>`;
+    alertList.setAttribute("aria-busy", "false");
+    alertList.innerHTML = `<div class="banner banner-danger" role="alert">${escapeHtml(error.message)} <button class="btn btn-secondary btn-sm" type="button" data-retry-alerts>Retry</button></div>`;
   }
-})();
+}
 
-document.getElementById("alert-form").addEventListener("submit", async (event) => {
+alertList.addEventListener("click", async event => {
+  if (event.target.closest("[data-retry-alerts]")) {
+    loadAlerts();
+    return;
+  }
+  const button = event.target.closest("[data-delete-alert]");
+  if (!button) return;
+  window.PetroVisionUI?.setBusy(button, true);
+  try {
+    await deleteAlert(button.dataset.deleteAlert);
+    window.PetroVisionUI?.toast("Alert deleted.", "success");
+    await loadAlerts();
+  } catch (error) {
+    banner.innerHTML = `<div class="banner banner-danger" role="alert">${escapeHtml(error.message)}</div>`;
+    window.PetroVisionUI?.toast(error.message || "Could not delete this alert.", "error");
+    window.PetroVisionUI?.setBusy(button, false);
+  }
+});
+
+alertForm.addEventListener("submit", async event => {
   event.preventDefault();
   const condition = document.querySelector('input[name="a-condition"]:checked').value;
-  const form = event.currentTarget;
-  const submit = form.querySelector("button[type=submit]");
-  submit.disabled = true;
+  const submit = alertForm.querySelector('button[type="submit"]');
+  window.PetroVisionUI?.setBusy(submit, true);
   try {
     await addAlert({
       stationId: stationSelect.value,
@@ -83,12 +118,15 @@ document.getElementById("alert-form").addEventListener("submit", async (event) =
       condition,
       threshold: document.getElementById("a-threshold").value
     });
-    document.getElementById("banner").innerHTML = `<div class="banner banner-success">Alert created. Points have been added to your rewards account.</div>`;
-    form.reset();
-    await renderAlerts();
+    alertForm.reset();
+    window.PetroVisionUI?.toast("Price alert saved.", "success");
+    await loadAlerts();
   } catch (error) {
-    document.getElementById("banner").innerHTML = `<div class="banner banner-danger">${escapeHtml(error.message)}</div>`;
+    banner.innerHTML = `<div class="banner banner-danger" role="alert">${escapeHtml(error.message)}</div>`;
+    window.PetroVisionUI?.toast(error.message || "Could not save this alert.", "error");
   } finally {
-    submit.disabled = false;
+    window.PetroVisionUI?.setBusy(submit, false);
   }
 });
+
+loadAlerts();

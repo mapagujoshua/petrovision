@@ -32,9 +32,10 @@ document.getElementById("feature-grid").innerHTML = FEATURES.map(f => `
   try {
     const [user, account, vehicles] = await Promise.all([getCurrentUser(), getRewardAccount(), getVehicles()]);
     const badge = getBadge(account.points);
+    const badgeIndex = BADGES.indexOf(badge);
     document.getElementById("welcome-heading").textContent = `Welcome back, ${user.displayName.split(" ")[0]}.`;
     document.getElementById("stat-points").textContent = account.points;
-    document.getElementById("stat-badge").innerHTML = `<span class="tier-badge" style="background:${badge.color}">${badge.name}</span>`;
+    document.getElementById("stat-badge").innerHTML = `<span class="tier-badge" data-tier="${badgeIndex}">${escapeHtml(badge.name)}</span>`;
     document.getElementById("stat-misc").textContent = `${vehicles.length} vehicles · ${account.contributions} contributions`;
   } catch (error) {
     document.getElementById("banner").innerHTML = `<div class="banner banner-danger">${escapeHtml(error.message)}</div>`;

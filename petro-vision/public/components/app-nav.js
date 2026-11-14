@@ -10,7 +10,6 @@
     { href: "garage.html", label: "Garage" },
     { href: "alerts.html", label: "Alerts" },
     { href: "availability.html", label: "Availability" },
-    { href: "dashboard.html", label: "Dashboard" },
     { href: "home.html#about", label: "About" },
     { href: "home.html#contact", label: "Contact" }
   ];
@@ -20,7 +19,6 @@
   ];
   const ACCOUNT_LINKS = [
     { href: "profile.html", label: "Profile" },
-    { href: "dashboard.html", label: "Dashboard" },
     { href: "garage.html", label: "Garage" },
     { href: "alerts.html", label: "Alerts" },
     { href: "availability.html", label: "Availability" }
@@ -99,9 +97,9 @@
 
   function getMoreLinks(isAdmin) {
     return [
-      ...BASE_MORE_LINKS.slice(0, 4),
+      ...BASE_MORE_LINKS.slice(0, 3),
       ...(isAdmin ? ADMIN_LINKS : []),
-      ...BASE_MORE_LINKS.slice(4)
+      ...BASE_MORE_LINKS.slice(3)
     ];
   }
 
@@ -133,7 +131,7 @@
     const accountLinks = menuItems(ACCOUNT_LINKS);
     const mobilePrimaryLinks = PRIMARY_LINKS.map(item => renderLink(item, "pv-drawer-link")).join("");
     const mobileMoreLinks = moreLinksData
-      .filter(item => item.href === "dashboard.html" || item.href.startsWith("admin-") || item.href.startsWith("home.html#"))
+      .filter(item => item.href.startsWith("admin-") || item.href.startsWith("home.html#"))
       .map(item => renderLink(item, "pv-drawer-link"))
       .join("");
     const mobileAccountLinks = ACCOUNT_LINKS.map(item => renderLink(item, "pv-drawer-link")).join("");

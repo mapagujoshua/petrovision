@@ -25,7 +25,7 @@
 <body>
   <div id="app-nav"></div>
 
-  <main class="profile-page container">
+  <main class="profile-page page-main container">
     <header class="profile-heading">
       <div class="profile-avatar" id="profile-avatar" aria-hidden="true">U</div>
       <div class="profile-heading-copy">
@@ -115,7 +115,7 @@
 
       <section class="profile-card card profile-reports-card" aria-labelledby="reports-title">
         <h2 id="reports-title">My reports</h2>
-        <div class="table-wrap">
+        <div class="responsive-table">
           <table>
             <thead>
               <tr><th>Station</th><th>Report</th><th>Fuel</th><th>Status</th><th>Date</th></tr>
@@ -142,9 +142,14 @@
       </section>
     </div>
   </main>
+  <footer class="app-footer">
+    <span>PetroVision, a prototype crowdsourced fuel price, station locator, and trip cost estimation system</span>
+    <span>Prices are community reported and subject to change.</span>
+  </footer>
 
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
+  <script src="components/app-ui.js"></script>
   <script src="js/profile.js"></script>
 </body>
 </html>

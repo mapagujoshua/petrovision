@@ -24,7 +24,7 @@
 }
 
 .map-page [hidden] {
-  display: none !important;
+  display: none;
 }
 
 .map-shell {
@@ -92,7 +92,7 @@
 
 .button {
   display: inline-flex;
-  min-height: 40px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   gap: var(--space-8);
@@ -115,6 +115,10 @@
   min-height: 44px;
   border-color: var(--accent);
   background: var(--accent);
+  color: var(--text);
+}
+
+html[data-theme="dark"] .map-page .button-primary {
   color: var(--accent-text);
 }
 
@@ -173,8 +177,8 @@
 }
 
 .small-icon-button {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   flex: 0 0 auto;
 }
 
@@ -206,7 +210,7 @@
 .search-field input,
 .sort-field select {
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
@@ -232,7 +236,7 @@
 }
 
 .filter-pill {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -290,7 +294,7 @@
 .sort-field select {
   width: auto;
   min-width: 154px;
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 32px 0 10px;
 }
 
@@ -481,7 +485,7 @@
 }
 
 .button-compact {
-  min-height: 38px;
+  min-height: 44px;
   margin-top: var(--space-8);
 }
 
@@ -543,7 +547,7 @@
 
 .map-control-button {
   display: inline-flex;
-  min-height: 42px;
+  min-height: 44px;
   align-items: center;
   gap: var(--space-8);
   padding: 0 14px;
@@ -636,7 +640,7 @@
 
 .price-marker {
   display: inline-flex;
-  min-height: 30px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   padding: 0 9px;
@@ -672,8 +676,8 @@
 
 .cluster-marker {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   border: 2px solid var(--surface);
   border-radius: 50%;
@@ -687,23 +691,23 @@
 
 .leaflet-bar {
   overflow: hidden;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius) !important;
-  box-shadow: var(--shadow-card) !important;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 
-.leaflet-bar a,
-.leaflet-bar a:hover {
-  width: 38px !important;
-  height: 38px !important;
-  border-bottom: 1px solid var(--border) !important;
-  background: var(--surface) !important;
-  color: var(--text) !important;
-  line-height: 36px !important;
+.map-page .leaflet-bar a,
+.map-page .leaflet-bar a:hover {
+  width: 44px;
+  height: 44px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  line-height: 42px;
 }
 
-.leaflet-bar a:last-child {
-  border-bottom: 0 !important;
+.map-page .leaflet-bar a:last-child {
+  border-bottom: 0;
 }
 
 .leaflet-bar a:focus-visible {
@@ -712,18 +716,18 @@
 }
 
 .leaflet-control-attribution {
-  padding: 2px 6px !important;
-  background: var(--surface) !important;
-  color: var(--text-muted) !important;
-  font-size: 13px !important;
+  padding: 2px 6px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
-.leaflet-control-attribution a {
-  color: var(--navy) !important;
+.map-page .leaflet-control-attribution a {
+  color: var(--navy);
 }
 
 [data-theme="dark"] .leaflet-control-attribution a {
-  color: var(--text) !important;
+  color: var(--text);
 }
 
 .leaflet-popup-content-wrapper,
@@ -789,7 +793,7 @@
 .station-popup-actions a,
 .station-popup-actions button {
   display: inline-flex;
-  min-height: 36px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   padding: 0 10px;
@@ -871,7 +875,7 @@
 
   .sheet-toggle {
     display: flex;
-    min-height: 22px;
+    min-height: 44px;
     flex: 0 0 auto;
     align-items: center;
     justify-content: center;
@@ -939,11 +943,6 @@
     gap: 6px;
   }
 
-  .filter-pill {
-    min-height: 34px;
-    padding-inline: 10px;
-  }
-
   .map-bottom-info {
     top: 68px;
     left: 8px;
@@ -969,12 +968,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    animation-duration: .01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: .01ms !important;
+  .map-page,
+  .map-page *,
+  .map-page *::before,
+  .map-page *::after {
+    scroll-behavior: auto;
+    animation: none;
+    transition: none;
   }
 }

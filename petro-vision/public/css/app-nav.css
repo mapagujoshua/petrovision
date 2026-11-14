@@ -14,7 +14,7 @@
 }
 
 #app-nav [hidden] {
-  display: none !important;
+  display: none;
 }
 
 #app-nav .pv-nav-shell {
@@ -26,19 +26,19 @@
 }
 
 #app-nav .pv-nav-shell.is-scrolled {
-  box-shadow: 0 6px 18px rgb(15 34 54 / 10%);
+  box-shadow: var(--shadow-nav);
 }
 
 #app-nav {
-  --pv-surface: var(--surface, var(--card, #FFFFFF));
-  --pv-surface-2: var(--surface-2, var(--bg, #F3F6FA));
-  --pv-border: var(--border, var(--line, #E1E7EE));
-  --pv-text: var(--text, var(--ink, #16232E));
-  --pv-text-muted: var(--text-muted, var(--ink-soft, #5B6B7A));
-  --pv-navy: var(--navy, var(--brand, #0B3D5C));
-  --pv-accent: var(--accent, #F2732B);
-  --pv-shadow: var(--shadow-card, 0 12px 30px rgb(15 34 54 / 10%));
-  --pv-focus: var(--focus-ring, var(--accent, #F2732B));
+  --pv-surface: var(--surface);
+  --pv-surface-2: var(--surface-2);
+  --pv-border: var(--border);
+  --pv-text: var(--text);
+  --pv-text-muted: var(--text-muted);
+  --pv-navy: var(--navy);
+  --pv-accent: var(--accent);
+  --pv-shadow: var(--shadow-sm);
+  --pv-focus: var(--focus-ring);
 }
 
 #app-nav .pv-nav-inner {
@@ -82,7 +82,7 @@ html[data-theme="dark"] #app-nav .pv-nav-logo {
 
 #app-nav .pv-nav-link {
   display: inline-flex;
-  min-height: 40px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -136,8 +136,8 @@ html[data-theme="dark"] #app-nav .pv-nav-link.is-active {
 #app-nav .pv-icon-button {
   position: relative;
   display: inline-flex;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
@@ -190,7 +190,7 @@ html[data-theme="dark"] #app-nav .pv-icon-sun {
 
 #app-nav .pv-profile-toggle {
   display: inline-flex;
-  min-height: 42px;
+  min-height: 44px;
   align-items: center;
   gap: 8px;
   padding: 4px 10px 4px 5px;
@@ -253,7 +253,7 @@ html[data-theme="dark"] #app-nav .pv-avatar {
 #app-nav .pv-menu-item {
   position: relative;
   display: flex;
-  min-height: 42px;
+  min-height: 44px;
   align-items: center;
   padding: 0 12px;
   border: 0;
@@ -347,8 +347,8 @@ html[data-theme="dark"] #app-nav .pv-drawer-link.is-active {
 }
 
 #app-nav :focus-visible {
-  outline: 3px solid var(--pv-focus);
-  outline-offset: 3px;
+  outline: 2px solid var(--pv-focus);
+  outline-offset: 2px;
 }
 
 @media (max-width: 900px) {
@@ -392,7 +392,7 @@ html[data-theme="dark"] #app-nav .pv-drawer-link.is-active {
   #app-nav *,
   #app-nav *::before,
   #app-nav *::after {
-    scroll-behavior: auto !important;
-    transition-duration: .01ms !important;
+    scroll-behavior: auto;
+    transition-duration: .01ms;
   }
 }

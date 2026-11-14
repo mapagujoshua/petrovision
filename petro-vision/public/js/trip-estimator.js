@@ -1,98 +1,135 @@
-/* ============================================================
-   PetroVision — js/trip-estimator.js
-   ------------------------------------------------------------
-   Estimates fuel cost for a trip:
-     distance (km) comes from the backend Routes estimator
-     liters needed = distance / vehicle.efficiency (km per liter)
-     price used    = average verified backend price
-     total cost    = liters needed × price used
-   ============================================================ */
-
-const username = requireAuth();
+requireAuth();
 
 const fromSelect = document.getElementById("from-city");
 const toSelect = document.getElementById("to-city");
 const vehicleSelect = document.getElementById("vehicle-select");
 const vehicleInfo = document.getElementById("vehicle-info");
+const fuelTypeInfo = document.getElementById("fuel-type-info");
 const form = document.getElementById("estimate-form");
+const banner = document.getElementById("banner");
+const estimateResults = document.getElementById("estimate-results");
+const estimatePlaceholder = document.getElementById("estimate-placeholder");
+const cheapestComparison = document.getElementById("cheapest-comparison");
 
-// ---------- city dropdowns ----------
 Object.keys(CITIES).forEach(city => {
-  fromSelect.innerHTML += `<option value="${city}">${city}</option>`;
-  toSelect.innerHTML += `<option value="${city}">${city}</option>`;
+  fromSelect.add(new Option(city, city));
+  toSelect.add(new Option(city, city));
 });
-toSelect.selectedIndex = 1; // default to a different city than "from"
+toSelect.selectedIndex = 1;
 
-// ---------- vehicle dropdown ----------
 let vehicles = [];
-
-function updateVehicleInfo() {
-  const v = vehicles.find(v => v.id === vehicleSelect.value);
-  if (!v) { vehicleInfo.textContent = ""; return; }
-  vehicleInfo.textContent = `${v.type} · ${v.fuelType} · about ${v.efficiency} km/L`;
-}
-vehicleSelect.addEventListener("change", updateVehicleInfo);
-
-(async function initializeEstimator() {
-  try {
-    vehicles = await getVehicles();
-    if (vehicles.length === 0) {
-      document.getElementById("no-vehicle-notice").style.display = "block";
-      form.querySelector("button[type=submit]").disabled = true;
-      return;
-    }
-    vehicles.forEach(v => vehicleSelect.insertAdjacentHTML("beforeend", `<option value="${escapeHtml(v.id)}">${escapeHtml(v.name)} (${escapeHtml(v.fuelType)})</option>`));
-    updateVehicleInfo();
-  } catch (error) {
-    document.getElementById("banner").innerHTML = `<div class="banner banner-danger">${escapeHtml(error.message)}</div>`;
-  }
-})();
-
-// ---------- estimate ----------
+let publicStations = [];
 let lastEstimate = null;
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
+function updateVehicleInfo() {
+  const vehicle = vehicles.find(item => item.id === vehicleSelect.value);
+  if (!vehicle) {
+    fuelTypeInfo.textContent = "Choose a vehicle";
+    vehicleInfo.textContent = "";
+    return;
+  }
+  fuelTypeInfo.textContent = vehicle.fuelType;
+  vehicleInfo.textContent = `${vehicle.type} · about ${vehicle.efficiency} km/L`;
+}
 
+function updateComparison(from, vehicle, result) {
+  const origin = CITIES[from];
+  const candidates = publicStations
+    .filter(station => station.fuelType === vehicle.fuelType && Number(station.price) > 0)
+    .map(station => ({
+      ...station,
+      distanceKm: haversineKm(origin, { lat: Number(station.lat), lng: Number(station.lng) })
+    }))
+    .filter(station => Number.isFinite(station.distanceKm) && station.distanceKm <= 50)
+    .sort((a, b) => Number(a.price) - Number(b.price));
+  const cheapest = candidates[0];
+  if (!cheapest) {
+    cheapestComparison.textContent = `No approved ${vehicle.fuelType} price was found within 50 km of ${from}.`;
+    return;
+  }
+
+  const nearbyCost = result.fuelLitres * Number(cheapest.price);
+  const difference = result.estimatedFuelCost - nearbyCost;
+  const comparison = difference >= 0
+    ? `About ₱${difference.toFixed(0)} less than the estimate`
+    : `About ₱${Math.abs(difference).toFixed(0)} more than the estimate`;
+  cheapestComparison.textContent =
+    `${cheapest.name} has the lowest reported price nearby at ₱${Number(cheapest.price).toFixed(2)}/L (${cheapest.distanceKm.toFixed(1)} km away). ${comparison}.`;
+}
+
+async function initializeEstimator() {
+  try {
+    const [loadedVehicles, stationsResult] = await Promise.all([
+      getVehicles(),
+      getPublicStations().catch(error => {
+        console.warn("Could not load station prices for the route comparison.", error);
+        return [];
+      })
+    ]);
+    vehicles = loadedVehicles;
+    publicStations = stationsResult;
+    if (!vehicles.length) {
+      document.getElementById("no-vehicle-notice").hidden = false;
+      form.querySelector('button[type="submit"]').disabled = true;
+      return;
+    }
+    vehicles.forEach(vehicle => vehicleSelect.add(new Option(
+      `${vehicle.name} (${vehicle.fuelType})`,
+      vehicle.id
+    )));
+    updateVehicleInfo();
+  } catch (error) {
+    banner.innerHTML = `<div class="banner banner-danger" role="alert">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+vehicleSelect.addEventListener("change", updateVehicleInfo);
+
+form.addEventListener("submit", async event => {
+  event.preventDefault();
   const from = fromSelect.value;
   const to = toSelect.value;
-  const vehicle = vehicles.find(v => v.id === vehicleSelect.value);
+  const vehicle = vehicles.find(item => item.id === vehicleSelect.value);
   if (!vehicle) return;
 
   if (from === to) {
-    document.getElementById("banner").innerHTML =
-      `<div class="banner banner-danger">Starting point and destination can't be the same city.</div>`;
+    banner.innerHTML = `<div class="banner banner-danger" role="alert">Choose two different cities for your trip.</div>`;
     return;
   }
-  document.getElementById("banner").innerHTML = "";
-
-  const submit = form.querySelector("button[type=submit]");
-  submit.disabled = true;
+  banner.replaceChildren();
+  const submit = form.querySelector('button[type="submit"]');
+  window.PetroVisionUI?.setBusy(submit, true);
   try {
     const result = await estimateTrip(from, to, vehicle.id);
     document.getElementById("res-distance").textContent = `${result.distanceKm.toFixed(0)} km`;
     document.getElementById("res-liters").textContent = `${result.fuelLitres.toFixed(1)} L`;
     document.getElementById("res-price").textContent = `₱${result.pricePerLitre.toFixed(2)}/L`;
     document.getElementById("res-cost").textContent = `₱${result.estimatedFuelCost.toFixed(0)}`;
-    document.getElementById("result-card").style.display = "block";
+    estimatePlaceholder.hidden = true;
+    estimateResults.hidden = false;
+    updateComparison(from, vehicle, result);
     lastEstimate = { from, to, vehicle };
   } catch (error) {
-    document.getElementById("banner").innerHTML = `<div class="banner banner-danger">${escapeHtml(error.message)}</div>`;
+    banner.innerHTML = `<div class="banner banner-danger" role="alert">${escapeHtml(error.message)}</div>`;
+    window.PetroVisionUI?.toast(error.message || "Could not estimate this trip.", "error");
   } finally {
-    submit.disabled = false;
+    window.PetroVisionUI?.setBusy(submit, false);
   }
 });
-document.getElementById("save-history-btn").addEventListener("click", async () => {
+
+document.getElementById("save-history-btn").addEventListener("click", async event => {
   if (!lastEstimate) return;
-  const button = document.getElementById("save-history-btn");
-  button.disabled = true;
+  const button = event.currentTarget;
+  window.PetroVisionUI?.setBusy(button, true);
   try {
     await addHistoryEntry({ type: "Trip", from: lastEstimate.from, to: lastEstimate.to }, lastEstimate.vehicle.id);
-    document.getElementById("banner").innerHTML =
-      `<div class="banner banner-success">Trip saved to your History. Points have been added to your rewards account.</div>`;
+    window.PetroVisionUI?.toast("Trip saved to your history.", "success");
   } catch (error) {
-    document.getElementById("banner").innerHTML = `<div class="banner banner-danger">${escapeHtml(error.message)}</div>`;
+    banner.innerHTML = `<div class="banner banner-danger" role="alert">${escapeHtml(error.message)}</div>`;
+    window.PetroVisionUI?.toast(error.message || "Could not save this trip.", "error");
   } finally {
-    button.disabled = false;
+    window.PetroVisionUI?.setBusy(button, false);
   }
 });
+
+initializeEstimator();

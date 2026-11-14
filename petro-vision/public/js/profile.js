@@ -30,6 +30,7 @@ function renderReports(reports) {
     const cell = document.createElement("td");
     cell.colSpan = 5;
     cell.className = "profile-report-empty";
+    cell.dataset.label = "Reports";
     cell.textContent = "You haven't submitted any reports yet.";
     row.append(cell);
     profileReports.append(row);
@@ -39,19 +40,24 @@ function renderReports(reports) {
   reports.forEach(report => {
     const row = document.createElement("tr");
     const stationCell = document.createElement("td");
+    stationCell.dataset.label = "Station";
     stationCell.textContent = report.stationName || "Station";
     const typeCell = document.createElement("td");
+    typeCell.dataset.label = "Report";
     typeCell.textContent = report.type === "Fuel price" && Number.isFinite(Number(report.price))
       ? `${report.type} · ₱${Number(report.price).toFixed(2)}`
       : report.type || "Report";
     const fuelCell = document.createElement("td");
+    fuelCell.dataset.label = "Fuel";
     fuelCell.textContent = report.fuelType || "—";
     const statusCell = document.createElement("td");
+    statusCell.dataset.label = "Status";
     const statusBadge = document.createElement("span");
     statusBadge.className = `badge ${reportStatusClass(report.status)}`;
     statusBadge.textContent = report.status || "pending";
     statusCell.append(statusBadge);
     const dateCell = document.createElement("td");
+    dateCell.dataset.label = "Date";
     dateCell.textContent = formatReportDate(report.reportedAt);
     row.append(stationCell, typeCell, fuelCell, statusCell, dateCell);
     profileReports.append(row);

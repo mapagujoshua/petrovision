@@ -1,45 +1,56 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script>
-(() => {
-  let preference;
-  try { preference = localStorage.getItem("petrovision-theme"); } catch (error) { preference = null; }
-  const theme = preference === "light" || preference === "dark"
-    ? preference
-    : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  document.documentElement.dataset.theme = theme;
-})();
-</script>
-<title>PetroVision — Garage</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/app-nav.css">
-<script src="components/app-nav.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+  (() => {
+    let preference;
+    try { preference = localStorage.getItem("petrovision-theme"); } catch (error) { preference = null; }
+    const theme = preference === "light" || preference === "dark"
+      ? preference
+      : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+  })();
+  </script>
+  <title>PetroVision — Garage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app-pages.css">
+  <link rel="stylesheet" href="css/app-nav.css">
+  <script src="components/app-nav.js"></script>
 </head>
 <body>
-
   <div id="app-nav"></div>
+  <main class="page-main container">
+    <header class="page-header">
+      <div class="page-header-copy">
+        <h1>Garage</h1>
+        <p>Keep your vehicles in one place to make trip estimates more personal.</p>
+      </div>
+      <a class="btn btn-primary" href="#vehicle-form">Add a vehicle</a>
+    </header>
 
-  <main class="container">
-    <div class="page-head">
-      <h1>Personalized Vehicle Garage</h1>
-      <p>Manage the vehicles you drive. Your Trip Cost Estimator uses these details to calculate fuel needed.</p>
-    </div>
+    <div id="banner" aria-live="polite"></div>
+    <section class="summary-grid garage-summary" aria-label="Garage summary">
+      <div class="summary-item"><span>Vehicles in your garage</span><strong id="vehicle-count">—</strong></div>
+      <div class="summary-item"><span>Average efficiency</span><strong id="summary-efficiency">—</strong></div>
+      <div class="summary-item"><span>Fuel types</span><strong id="fuel-type-count">—</strong></div>
+    </section>
 
-    <div id="banner"></div>
-
-    <div class="grid-2">
-      <form id="vehicle-form" class="card">
-        <h3>Add a vehicle</h3>
+    <div class="garage-layout">
+      <form id="vehicle-form" class="card vehicle-form-card">
+        <div class="card-header">
+          <div>
+            <h2>Add a vehicle</h2>
+            <p class="hint">A few details are enough to estimate fuel use.</p>
+          </div>
+        </div>
         <div class="field">
           <label for="v-name">Nickname</label>
-          <input type="text" id="v-name" placeholder="e.g. My Vios, Dad's Fortuner" required>
+          <input type="text" id="v-name" placeholder="e.g. My Vios" maxlength="80" required>
         </div>
         <div class="field">
           <label for="v-type">Vehicle type</label>
@@ -50,26 +61,35 @@
           <select id="v-fuel" required></select>
         </div>
         <div class="field">
-          <label for="v-eff">Fuel efficiency (km per liter)</label>
-          <input type="number" id="v-eff" step="0.1" min="1" required>
-          <p class="hint">We've suggested a starting number based on the vehicle type — adjust it if you know your actual mileage.</p>
+          <label for="v-eff">Fuel efficiency (km/L)</label>
+          <input type="number" id="v-eff" step="0.1" min="1" inputmode="decimal" required>
+          <p class="field-hint">A starting estimate is suggested for each vehicle type.</p>
         </div>
-        <button type="submit" class="btn btn-block">Add Vehicle</button>
+        <button type="submit" class="btn btn-primary btn-block">Save vehicle</button>
       </form>
 
-      <div class="card">
-        <h3>Your vehicles</h3>
-        <div id="vehicle-list" class="stack"></div>
-      </div>
+      <section class="garage-vehicles-section" aria-labelledby="vehicles-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="vehicles-title">Your vehicles</h2>
+            <p>Vehicle details used in your trip calculations.</p>
+          </div>
+        </div>
+        <div id="vehicle-list" class="vehicle-grid" aria-live="polite" aria-busy="true">
+          <div class="card vehicle-skeleton"><div class="skeleton"></div></div>
+          <div class="card vehicle-skeleton"><div class="skeleton"></div></div>
+        </div>
+      </section>
     </div>
+    <p class="garage-data-note">Fuel tank capacity is not collected by the current vehicle profile, so it is not shown here.</p>
   </main>
-
-  <footer>
-    PetroVision — a prototype crowdsourced fuel price, station locator, and trip cost estimation system.
+  <footer class="app-footer">
+    <span>PetroVision, a prototype crowdsourced fuel price, station locator, and trip cost estimation system</span>
+    <span>Your garage is private to your account.</span>
   </footer>
-
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
+  <script src="components/app-ui.js"></script>
   <script src="js/garage.js"></script>
 </body>
 </html>
