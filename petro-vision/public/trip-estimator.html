@@ -33,8 +33,9 @@
     </header>
 
     <div id="banner" aria-live="polite"></div>
-    <div id="no-vehicle-notice" class="banner banner-info" hidden>
-      Add a vehicle in your <a href="garage.html" class="inline-link">Garage</a> before estimating a trip.
+    <div id="no-vehicle-notice" class="banner banner-info" role="status" aria-live="polite" hidden>
+      <p>Add a vehicle in your Garage before estimating a trip.</p>
+      <a class="btn btn-primary" href="garage.html">Add a vehicle</a>
     </div>
 
     <div class="trip-layout">
@@ -55,14 +56,16 @@
         </div>
         <div class="field">
           <label for="vehicle-select">Vehicle</label>
-          <select id="vehicle-select" required></select>
+          <select id="vehicle-select" required disabled>
+            <option value="" selected>Loading vehicles…</option>
+          </select>
         </div>
         <div class="trip-vehicle-summary" aria-live="polite">
           <span class="trip-summary-label">Fuel and efficiency</span>
           <strong id="fuel-type-info">Choose a vehicle</strong>
           <span class="hint" id="vehicle-info"></span>
         </div>
-        <button type="submit" class="btn btn-primary btn-block" aria-busy="false">Estimate trip cost</button>
+        <button type="submit" class="btn btn-primary btn-block" aria-busy="false" disabled>Estimate trip cost</button>
       </form>
 
       <section class="card trip-result-card" id="result-card" aria-labelledby="estimate-title" aria-live="polite">

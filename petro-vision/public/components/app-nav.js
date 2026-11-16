@@ -17,12 +17,7 @@
     { href: "admin-dashboard.html", label: "Admin audit" },
     { href: "admin-management.html", label: "Admin stations" }
   ];
-  const ACCOUNT_LINKS = [
-    { href: "profile.html", label: "Profile" },
-    { href: "garage.html", label: "Garage" },
-    { href: "alerts.html", label: "Alerts" },
-    { href: "availability.html", label: "Availability" }
-  ];
+  const ACCOUNT_LINKS = [{ href: "profile.html", label: "Profile" }];
 
   function escapeMarkup(value) {
     return String(value).replace(/[&<>"']/g, character => ({
@@ -130,10 +125,7 @@
     const moreLinks = menuItems(moreLinksData);
     const accountLinks = menuItems(ACCOUNT_LINKS);
     const mobilePrimaryLinks = PRIMARY_LINKS.map(item => renderLink(item, "pv-drawer-link")).join("");
-    const mobileMoreLinks = moreLinksData
-      .filter(item => item.href.startsWith("admin-") || item.href.startsWith("home.html#"))
-      .map(item => renderLink(item, "pv-drawer-link"))
-      .join("");
+    const mobileMoreLinks = moreLinksData.map(item => renderLink(item, "pv-drawer-link")).join("");
     const mobileAccountLinks = ACCOUNT_LINKS.map(item => renderLink(item, "pv-drawer-link")).join("");
 
     return `
@@ -145,11 +137,11 @@
           <nav class="pv-nav-primary" aria-label="Main navigation">
             ${primaryLinks}
             <div class="pv-nav-dropdown">
-              <button class="pv-nav-link pv-nav-dropdown-toggle${currentMore ? " is-active" : ""}" id="pv-more-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="pv-more-menu">
+              <button class="pv-nav-link pv-nav-dropdown-toggle${currentMore ? " is-active" : ""}" id="pv-more-toggle" type="button" data-menu-trigger="pv-more-menu" aria-haspopup="menu" aria-expanded="false" aria-controls="pv-more-menu">
                 More
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
               </button>
-              <div class="pv-nav-menu" id="pv-more-menu" role="menu" aria-label="More pages" hidden>
+              <div class="nav-menu pv-nav-menu" id="pv-more-menu" role="menu" aria-label="More pages" aria-hidden="true">
                 ${moreLinks}
               </div>
             </div>
@@ -164,14 +156,14 @@
               <span class="pv-alert-dot" data-alert-dot hidden aria-hidden="true"></span>
             </a>
             <div class="pv-nav-dropdown pv-profile-dropdown">
-              <button class="pv-profile-toggle" id="pv-profile-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="pv-profile-menu">
+              <button class="pv-profile-toggle" id="pv-profile-toggle" type="button" data-menu-trigger="pv-profile-menu" aria-label="Open profile menu for ${escapeMarkup(username)}" aria-haspopup="menu" aria-expanded="false" aria-controls="pv-profile-menu">
                 <span class="pv-avatar" aria-hidden="true">${initial}</span>
                 <span class="pv-profile-name">${escapeMarkup(username)}</span>
                 <svg class="pv-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
               </button>
-              <div class="pv-nav-menu pv-profile-menu" id="pv-profile-menu" role="menu" aria-label="Profile menu" hidden>
+              <div class="nav-menu pv-nav-menu pv-profile-menu" id="pv-profile-menu" role="menu" aria-label="Profile menu" aria-hidden="true">
                 ${accountLinks}
-                <button class="pv-menu-item" type="button" role="menuitem" data-logout>Log out</button>
+                <button class="pv-menu-item pv-logout-item" type="button" role="menuitem" data-logout>Log out</button>
               </div>
             </div>
           </div>
@@ -204,35 +196,39 @@
     const session = typeof getSession === "function" ? getSession() : null;
     mount.innerHTML = renderNavigation(session);
 
-    const moreToggle = document.getElementById("pv-more-toggle");
-    const moreMenu = document.getElementById("pv-more-menu");
-    const profileToggle = document.getElementById("pv-profile-toggle");
-    const profileMenu = document.getElementById("pv-profile-menu");
+    const menuPairs = [...mount.querySelectorAll("[data-menu-trigger]")].map(trigger => [
+      trigger,
+      document.getElementById(trigger.dataset.menuTrigger)
+    ]).filter(([, menu]) => Boolean(menu));
     const mobileToggle = document.getElementById("pv-mobile-toggle");
     const drawer = document.getElementById("pv-mobile-drawer");
-    const menuPairs = [[moreToggle, moreMenu], [profileToggle, profileMenu]];
 
     function closeMenu(trigger, menu, restoreFocus = false) {
-      if (menu.hidden) return;
-      menu.hidden = true;
+      if (!menu.classList.contains("is-open")) return;
+      menu.classList.remove("is-open");
+      menu.setAttribute("aria-hidden", "true");
       trigger.setAttribute("aria-expanded", "false");
       if (restoreFocus) trigger.focus();
     }
 
-    function closeMenus(except) {
+    function closeMenus(restoreFocus = false) {
+      let focusTarget = null;
       menuPairs.forEach(([trigger, menu]) => {
-        if (menu !== except) closeMenu(trigger, menu);
+        if (menu.classList.contains("is-open")) focusTarget = trigger;
+        closeMenu(trigger, menu);
       });
+      if (restoreFocus) focusTarget?.focus();
     }
 
     function openMenu(trigger, menu) {
-      closeMenus(menu);
-      menu.hidden = false;
+      closeMenus();
+      menu.classList.add("is-open");
+      menu.setAttribute("aria-hidden", "false");
       trigger.setAttribute("aria-expanded", "true");
     }
 
     function toggleMenu(trigger, menu) {
-      if (menu.hidden) openMenu(trigger, menu);
+      if (!menu.classList.contains("is-open")) openMenu(trigger, menu);
       else closeMenu(trigger, menu);
     }
 
@@ -244,6 +240,10 @@
     menuPairs.forEach(([trigger, menu]) => {
       trigger.addEventListener("click", () => toggleMenu(trigger, menu));
       trigger.addEventListener("keydown", event => {
+        if (event.key === "Tab" && menu.classList.contains("is-open")) {
+          closeMenus();
+          return;
+        }
         if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
         event.preventDefault();
         openMenu(trigger, menu);
@@ -254,7 +254,7 @@
         const currentIndex = items.indexOf(document.activeElement);
         if (event.key === "Escape") {
           event.preventDefault();
-          closeMenu(trigger, menu, true);
+          closeMenus(true);
         } else if (event.key === "ArrowDown") {
           event.preventDefault();
           focusMenuItem(menu, currentIndex + 1);
@@ -267,10 +267,12 @@
         } else if (event.key === "End") {
           event.preventDefault();
           focusMenuItem(menu, items.length - 1);
+        } else if (event.key === "Tab") {
+          closeMenus();
         }
       });
       menu.addEventListener("click", event => {
-        if (event.target.closest('[role="menuitem"]')) closeMenu(trigger, menu);
+        if (event.target.closest('[role="menuitem"]')) closeMenus();
       });
     });
 
@@ -301,12 +303,17 @@
     });
     document.addEventListener("keydown", event => {
       if (event.key !== "Escape") return;
-      const openPair = menuPairs.find(([, menu]) => !menu.hidden);
-      if (openPair) closeMenu(openPair[0], openPair[1], true);
+      if (menuPairs.some(([, menu]) => menu.classList.contains("is-open"))) closeMenus(true);
       else closeDrawer(true);
     });
+    let wasDesktop = window.innerWidth > 900;
     window.addEventListener("resize", () => {
-      if (window.innerWidth > 900) closeDrawer();
+      const isDesktop = window.innerWidth > 900;
+      if (isDesktop !== wasDesktop) {
+        closeMenus();
+        closeDrawer();
+        wasDesktop = isDesktop;
+      }
     });
     window.addEventListener("scroll", () => {
       mount.querySelector(".pv-nav-shell")?.classList.toggle("is-scrolled", window.scrollY > 0);

@@ -10,6 +10,7 @@ const banner = document.getElementById("banner");
 const estimateResults = document.getElementById("estimate-results");
 const estimatePlaceholder = document.getElementById("estimate-placeholder");
 const cheapestComparison = document.getElementById("cheapest-comparison");
+const estimateButton = form.querySelector('button[type="submit"]');
 
 Object.keys(CITIES).forEach(city => {
   fromSelect.add(new Option(city, city));
@@ -68,17 +69,32 @@ async function initializeEstimator() {
     ]);
     vehicles = loadedVehicles;
     publicStations = stationsResult;
+    vehicleSelect.replaceChildren();
     if (!vehicles.length) {
+      const emptyOption = new Option("No vehicles yet", "");
+      emptyOption.disabled = true;
+      emptyOption.selected = true;
+      vehicleSelect.add(emptyOption);
+      vehicleSelect.disabled = true;
       document.getElementById("no-vehicle-notice").hidden = false;
-      form.querySelector('button[type="submit"]').disabled = true;
+      estimateButton.disabled = true;
       return;
     }
+    const placeholder = new Option("Choose a vehicle", "");
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    vehicleSelect.add(placeholder);
     vehicles.forEach(vehicle => vehicleSelect.add(new Option(
       `${vehicle.name} (${vehicle.fuelType})`,
       vehicle.id
     )));
+    vehicleSelect.disabled = false;
+    estimateButton.disabled = false;
     updateVehicleInfo();
   } catch (error) {
+    vehicleSelect.replaceChildren(new Option("Vehicles unavailable", ""));
+    vehicleSelect.disabled = true;
+    estimateButton.disabled = true;
     banner.innerHTML = `<div class="banner banner-danger" role="alert">${escapeHtml(error.message)}</div>`;
   }
 }

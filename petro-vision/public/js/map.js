@@ -31,7 +31,7 @@ const map = L.map("map", {
   zoomAnimation: !REDUCED_MOTION
 }).setView(MAP_CENTER, 6);
 
-L.control.zoom({ position: "topright" }).addTo(map);
+L.control.zoom({ position: "bottomright" }).addTo(map);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   maxZoom: 18,
