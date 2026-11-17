@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
+import bcrypt from "bcryptjs";
 import request from "supertest";
 import { app } from "../src/app.js";
+import { validatePassword as validatePasswordPolicy } from "../src/password-policy.js";
 import { priceReports, resetStore, users, vehicles } from "../src/store.js";
 
 afterEach(resetStore);
@@ -38,7 +40,7 @@ test("server serves the UI assets and allows configured local Live Server origin
 });
 
 test("registration returns a bearer token and profile without password hash", async () => {
-  const response = await request(app).post("/api/auth/register").send({ email: "driver@example.com", password: "strong-password", displayName: "Driver" });
+  const response = await request(app).post("/api/auth/register").send({ email: "driver@example.com", password: "Valid-pass1!", displayName: "Driver" });
   assert.equal(response.status, 201);
   assert.equal(response.body.user.email, "driver@example.com");
   assert.equal("passwordHash" in response.body.user, false);
@@ -49,12 +51,55 @@ test("registration returns a bearer token and profile without password hash", as
   assert.equal(rewards.body.points, 5);
 });
 
+test("registration and password changes reject passwords outside the policy", async () => {
+  const acceptedSpecialCharacters = "!@#$%^&*()_+-=[]{};:'\",.<>/?\\|`~";
+  for (const specialCharacter of acceptedSpecialCharacters) {
+    assert.equal(validatePasswordPolicy(`Abcd123${specialCharacter}`).valid, true, `Expected ${specialCharacter} to be accepted as special`);
+  }
+
+  const invalidPasswords = [
+    "short1!",
+    "lowercase1!",
+    "UPPERCASE1!",
+    "NoNumber!!",
+    "NoSpecial1",
+    "Has space1A!",
+    `A1!${"a".repeat(62)}`,
+    "Password1é"
+  ];
+  for (const [index, password] of invalidPasswords.entries()) {
+    const response = await request(app).post("/api/auth/register")
+      .send({ email: `weak-${index}@example.com`, password, displayName: "Weak Password" });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.error, "Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character.");
+  }
+
+  const registration = await request(app).post("/api/auth/register")
+    .send({ email: "password-policy@example.com", password: "Valid-pass1!", displayName: "Policy Test" })
+    .expect(201);
+  const headers = { Authorization: `Bearer ${registration.body.accessToken}` };
+  await request(app).post("/api/users/me/password").set(headers)
+    .send({ currentPassword: "Valid-pass1!", newPassword: "weakpass" })
+    .expect(400)
+    .then((response) => assert.equal(response.body.error, "Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character."));
+});
+
+test("login continues to accept existing passwords that do not meet the new policy", async () => {
+  const registration = await request(app).post("/api/auth/register")
+    .send({ email: "legacy-password@example.com", password: "Valid-pass1!", displayName: "Legacy User" })
+    .expect(201);
+  users.get(registration.body.user.id)!.passwordHash = await bcrypt.hash("oldpass", 10);
+  await request(app).post("/api/auth/login")
+    .send({ email: "legacy-password@example.com", password: "oldpass" })
+    .expect(200);
+});
+
 test("UI-facing station and reward APIs return a driver's updated records", async () => {
-  const registration = await request(app).post("/api/auth/register").send({ email: "stations@example.com", password: "strong-password", displayName: "Station Driver" });
+  const registration = await request(app).post("/api/auth/register").send({ email: "stations@example.com", password: "Valid-pass1!", displayName: "Station Driver" });
   const headers = { Authorization: `Bearer ${registration.body.accessToken}` };
   const priceReport = await request(app).post("/api/stations/station-demo/price-reports").set(headers).send({ fuelType: "Diesel", price: 58 }).expect(201);
   const availabilityReport = await request(app).post("/api/stations/station-demo/availability").set(headers).send({ fuelType: "Diesel", status: "Low Stock" }).expect(201);
-  const reviewer = await request(app).post("/api/auth/register").send({ email: "stations-reviewer@example.com", password: "strong-password", displayName: "Reviewer" });
+  const reviewer = await request(app).post("/api/auth/register").send({ email: "stations-reviewer@example.com", password: "Valid-pass1!", displayName: "Reviewer" });
   users.get(reviewer.body.user.id)!.role = "admin";
   const adminHeaders = { Authorization: `Bearer ${reviewer.body.accessToken}` };
 
@@ -72,8 +117,8 @@ test("UI-facing station and reward APIs return a driver's updated records", asyn
 });
 
 test("guests can read approved station prices without contributor details", async () => {
-  const reporter = await request(app).post("/api/auth/register").send({ email: "public-reporter@example.com", password: "strong-password", displayName: "Reporter" });
-  const reviewer = await request(app).post("/api/auth/register").send({ email: "public-reviewer@example.com", password: "strong-password", displayName: "Reviewer" });
+  const reporter = await request(app).post("/api/auth/register").send({ email: "public-reporter@example.com", password: "Valid-pass1!", displayName: "Reporter" });
+  const reviewer = await request(app).post("/api/auth/register").send({ email: "public-reviewer@example.com", password: "Valid-pass1!", displayName: "Reviewer" });
   users.get(reviewer.body.user.id)!.role = "admin";
   const report = await request(app).post("/api/stations/station-demo/price-reports")
     .set("Authorization", `Bearer ${reporter.body.accessToken}`)
@@ -96,8 +141,8 @@ test("guests can read approved station prices without contributor details", asyn
 });
 
 test("vehicle records are private to their owner", async () => {
-  const first = await request(app).post("/api/auth/register").send({ email: "first@example.com", password: "strong-password", displayName: "First" });
-  const second = await request(app).post("/api/auth/register").send({ email: "second@example.com", password: "strong-password", displayName: "Second" });
+  const first = await request(app).post("/api/auth/register").send({ email: "first@example.com", password: "Valid-pass1!", displayName: "First" });
+  const second = await request(app).post("/api/auth/register").send({ email: "second@example.com", password: "Valid-pass1!", displayName: "Second" });
   const created = await request(app).post("/api/vehicles").set("Authorization", `Bearer ${first.body.accessToken}`).send({ make: "Toyota", model: "Prius", year: 2024, fuelType: "gasoline", fuelEfficiency: 20 });
   assert.equal(created.status, 201);
   const list = await request(app).get("/api/vehicles").set("Authorization", `Bearer ${second.body.accessToken}`);
@@ -105,15 +150,15 @@ test("vehicle records are private to their owner", async () => {
 });
 
 test("logout revokes the active access token", async () => {
-  const login = await request(app).post("/api/auth/register").send({ email: "logout@example.com", password: "strong-password", displayName: "Driver" });
+  const login = await request(app).post("/api/auth/register").send({ email: "logout@example.com", password: "Valid-pass1!", displayName: "Driver" });
   const token = login.body.accessToken as string;
   assert.equal((await request(app).post("/api/auth/logout").set("Authorization", `Bearer ${token}`)).status, 204);
   assert.equal((await request(app).get("/api/users/me").set("Authorization", `Bearer ${token}`)).status, 401);
 });
 
 test("profile reports are limited to the authenticated user", async () => {
-  const first = await request(app).post("/api/auth/register").send({ email: "profile-one@example.com", password: "strong-password", displayName: "First" });
-  const second = await request(app).post("/api/auth/register").send({ email: "profile-two@example.com", password: "strong-password", displayName: "Second" });
+  const first = await request(app).post("/api/auth/register").send({ email: "profile-one@example.com", password: "Valid-pass1!", displayName: "First" });
+  const second = await request(app).post("/api/auth/register").send({ email: "profile-two@example.com", password: "Valid-pass1!", displayName: "Second" });
   await request(app).post("/api/stations/station-demo/price-reports")
     .set("Authorization", `Bearer ${first.body.accessToken}`)
     .send({ fuelType: "Diesel", price: 58 })
@@ -132,25 +177,25 @@ test("profile reports are limited to the authenticated user", async () => {
 });
 
 test("password changes require the current password and revoke sessions", async () => {
-  const registration = await request(app).post("/api/auth/register").send({ email: "password@example.com", password: "strong-password", displayName: "Driver" });
+  const registration = await request(app).post("/api/auth/register").send({ email: "password@example.com", password: "Valid-pass1!", displayName: "Driver" });
   const headers = { Authorization: `Bearer ${registration.body.accessToken}` };
 
   await request(app).post("/api/users/me/password").set(headers)
-    .send({ currentPassword: "wrong-password", newPassword: "another-password" })
+    .send({ currentPassword: "wrong-password", newPassword: "Another-pass2@" })
     .expect(400);
   await request(app).get("/api/users/me").set(headers).expect(200);
 
   await request(app).post("/api/users/me/password").set(headers)
-    .send({ currentPassword: "strong-password", newPassword: "another-password" })
+    .send({ currentPassword: "Valid-pass1!", newPassword: "Another-pass2@" })
     .expect(204);
   await request(app).get("/api/users/me").set(headers).expect(401);
   await request(app).post("/api/auth/login")
-    .send({ email: "password@example.com", password: "another-password" })
+    .send({ email: "password@example.com", password: "Another-pass2@" })
     .expect(200);
 });
 
 test("account deletion anonymizes contributions and removes private account data", async () => {
-  const registration = await request(app).post("/api/auth/register").send({ email: "delete@example.com", password: "strong-password", displayName: "Driver" });
+  const registration = await request(app).post("/api/auth/register").send({ email: "delete@example.com", password: "Valid-pass1!", displayName: "Driver" });
   const headers = { Authorization: `Bearer ${registration.body.accessToken}` };
   const report = await request(app).post("/api/stations/station-demo/price-reports")
     .set(headers)
@@ -166,19 +211,19 @@ test("account deletion anonymizes contributions and removes private account data
   assert.equal((await request(app).get("/api/users/me").set(headers)).status, 200);
 
   await request(app).delete("/api/users/me").set(headers)
-    .send({ currentPassword: "strong-password", confirmation: "DELETE" })
+    .send({ currentPassword: "Valid-pass1!", confirmation: "DELETE" })
     .expect(204);
   assert.equal(users.has(registration.body.user.id), false);
   assert.equal(vehicles.has(vehicle.body.id), false);
   assert.equal(priceReports.get(report.body.id)?.userId, "deleted-account");
   await request(app).get("/api/users/me").set(headers).expect(401);
   await request(app).post("/api/auth/login")
-    .send({ email: "delete@example.com", password: "strong-password" })
+    .send({ email: "delete@example.com", password: "Valid-pass1!" })
     .expect(401);
 });
 
 test("authorization reflects current role and suspension status", async () => {
-  const registration = await request(app).post("/api/auth/register").send({ email: "roles@example.com", password: "strong-password", displayName: "Driver" });
+  const registration = await request(app).post("/api/auth/register").send({ email: "roles@example.com", password: "Valid-pass1!", displayName: "Driver" });
   const token = registration.body.accessToken as string;
   const user = users.get(registration.body.user.id)!;
   user.role = "admin";
@@ -193,7 +238,7 @@ test("configured bootstrap email receives admin access", async () => {
   const previousAdminEmail = process.env.ADMIN_EMAIL;
   process.env.ADMIN_EMAIL = "owner@example.com";
   try {
-    const registration = await request(app).post("/api/auth/register").send({ email: "owner@example.com", password: "strong-password", displayName: "Owner" });
+    const registration = await request(app).post("/api/auth/register").send({ email: "owner@example.com", password: "Valid-pass1!", displayName: "Owner" });
     assert.equal(registration.body.user.role, "admin");
     assert.equal((await request(app).get("/api/admin/users").set("Authorization", `Bearer ${registration.body.accessToken}`)).status, 200);
   } finally {
@@ -203,8 +248,8 @@ test("configured bootstrap email receives admin access", async () => {
 });
 
 test("admins can verify another driver's report while contributors cannot", async () => {
-  const reporter = await request(app).post("/api/auth/register").send({ email: "reporter@example.com", password: "strong-password", displayName: "Reporter" });
-  const reviewer = await request(app).post("/api/auth/register").send({ email: "reviewer@example.com", password: "strong-password", displayName: "Reviewer" });
+  const reporter = await request(app).post("/api/auth/register").send({ email: "reporter@example.com", password: "Valid-pass1!", displayName: "Reporter" });
+  const reviewer = await request(app).post("/api/auth/register").send({ email: "reviewer@example.com", password: "Valid-pass1!", displayName: "Reviewer" });
   users.get(reviewer.body.user.id)!.role = "admin";
   const report = await request(app).post("/api/stations/station-demo/price-reports")
     .set("Authorization", `Bearer ${reporter.body.accessToken}`)
@@ -224,11 +269,11 @@ test("price contributions earn points, trigger matching alerts, and can be redee
   const previousAdminEmail = process.env.ADMIN_EMAIL;
   process.env.ADMIN_EMAIL = "rewards-admin@example.com";
   try {
-    const admin = await request(app).post("/api/auth/register").send({ email: "rewards-admin@example.com", password: "strong-password", displayName: "Admin" });
+    const admin = await request(app).post("/api/auth/register").send({ email: "rewards-admin@example.com", password: "Valid-pass1!", displayName: "Admin" });
     const adminHeaders = { Authorization: `Bearer ${admin.body.accessToken}` };
     await request(app).put("/api/admin/rewards/rules/price-report").set(adminHeaders).send({ points: 100 }).expect(200);
 
-    const driver = await request(app).post("/api/auth/register").send({ email: "rewards-driver@example.com", password: "strong-password", displayName: "Driver" });
+    const driver = await request(app).post("/api/auth/register").send({ email: "rewards-driver@example.com", password: "Valid-pass1!", displayName: "Driver" });
     const headers = { Authorization: `Bearer ${driver.body.accessToken}` };
     const subscription = await request(app).post("/api/notifications/subscribe").set(headers).send({ stationId: "station-demo", fuelType: "gasoline", maxPrice: 1.5, fcmToken: "test-token" });
     assert.equal(subscription.status, 201);
@@ -259,8 +304,8 @@ test("admin moderation updates dashboard, station logs, and audit trail", async 
   const previousAdminEmail = process.env.ADMIN_EMAIL;
   process.env.ADMIN_EMAIL = "moderator@example.com";
   try {
-    const admin = await request(app).post("/api/auth/register").send({ email: "moderator@example.com", password: "strong-password", displayName: "Moderator" });
-    const driver = await request(app).post("/api/auth/register").send({ email: "moderated-driver@example.com", password: "strong-password", displayName: "Driver" });
+    const admin = await request(app).post("/api/auth/register").send({ email: "moderator@example.com", password: "Valid-pass1!", displayName: "Moderator" });
+    const driver = await request(app).post("/api/auth/register").send({ email: "moderated-driver@example.com", password: "Valid-pass1!", displayName: "Driver" });
     const userHeaders = { Authorization: `Bearer ${driver.body.accessToken}` };
     const adminHeaders = { Authorization: `Bearer ${admin.body.accessToken}` };
     const report = await request(app).post("/api/stations/station-demo/price-reports").set(userHeaders).send({ fuelType: "diesel", price: 1.6 });

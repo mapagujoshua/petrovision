@@ -3,12 +3,70 @@ requireAuth();
 const profileMessage = document.getElementById("profile-message");
 const profileReports = document.getElementById("profile-reports");
 const preferencesStatus = document.getElementById("preferences-status");
+const profilePasswordForm = document.getElementById("password-form");
 const DEFAULT_FUEL_KEY = "petrovision-default-fuel";
 
 function showProfileMessage(message, type = "") {
   profileMessage.textContent = message;
   profileMessage.className = `profile-message${type ? ` is-${type}` : ""}`;
   profileMessage.hidden = false;
+}
+
+function updateProfilePasswordUI(showErrors = false) {
+  const password = profilePasswordForm.elements.newPassword;
+  const confirmation = profilePasswordForm.elements.confirmPassword;
+  const currentPassword = profilePasswordForm.elements.currentPassword;
+  const validation = validatePassword(password.value);
+  const checks = {
+    length: validation.checks.length && validation.checks.noSpaces,
+    upper: validation.checks.upper,
+    lower: validation.checks.lower,
+    number: validation.checks.number,
+    special: validation.checks.special
+  };
+
+  Object.entries(checks).forEach(([name, met]) => {
+    const item = document.querySelector(`[data-profile-password-check="${name}"]`);
+    item.classList.toggle("is-met", met);
+    item.setAttribute("aria-label", `${item.textContent.trim()}: ${met ? "met" : "not met"}`);
+  });
+
+  const score = Object.values(checks).filter(Boolean).length;
+  const strength = document.getElementById("profile-password-strength");
+  const strengthLabel = password.value ? ["Weak", "Weak", "Fair", "Good", "Strong"][Math.max(0, score - 1)] : "Not entered";
+  strength.dataset.strength = String(score);
+  strength.querySelector("p").textContent = `Password strength: ${strengthLabel}`;
+
+  const passwordError = document.getElementById("profile-new-password-error");
+  if (!validation.valid && (showErrors || password.hasAttribute("aria-invalid"))) {
+    password.setAttribute("aria-invalid", "true");
+    passwordError.textContent = "Use 8–64 characters, no spaces, and include upper/lowercase letters, a number, and a special character.";
+  } else {
+    password.removeAttribute("aria-invalid");
+    passwordError.textContent = "";
+  }
+
+  const matches = confirmation.value.length > 0 && confirmation.value === password.value;
+  document.getElementById("profile-password-match").hidden = !matches;
+  const confirmationError = document.getElementById("profile-confirm-password-error");
+  if (matches) {
+    confirmation.removeAttribute("aria-invalid");
+    confirmationError.textContent = "";
+  } else if (confirmation.value.length > 0) {
+    confirmation.setAttribute("aria-invalid", "true");
+    confirmationError.textContent = "Passwords do not match";
+  } else if (showErrors) {
+    confirmation.setAttribute("aria-invalid", "true");
+    confirmationError.textContent = "Confirm your password.";
+  } else {
+    confirmation.removeAttribute("aria-invalid");
+    confirmationError.textContent = "";
+  }
+
+  profilePasswordForm.querySelector('button[type="submit"]').disabled =
+    !currentPassword.value
+    || !validation.valid
+    || !matches;
 }
 
 function reportStatusClass(status) {
@@ -129,12 +187,18 @@ document.getElementById("account-form").addEventListener("submit", async event =
   }
 });
 
-document.getElementById("password-form").addEventListener("submit", async event => {
+profilePasswordForm.addEventListener("input", () => updateProfilePasswordUI());
+profilePasswordForm.addEventListener("submit", async event => {
   event.preventDefault();
   const form = event.currentTarget;
   const button = form.querySelector('button[type="submit"]');
-  if (form.elements.newPassword.value !== form.elements.confirmPassword.value) {
-    showProfileMessage("The new passwords do not match.", "error");
+  if (!validatePassword(form.elements.newPassword.value).valid) {
+    updateProfilePasswordUI(true);
+    form.elements.newPassword.focus();
+    return;
+  }
+  if (!form.elements.confirmPassword.value || form.elements.newPassword.value !== form.elements.confirmPassword.value) {
+    updateProfilePasswordUI(true);
     form.elements.confirmPassword.focus();
     return;
   }
@@ -146,7 +210,7 @@ document.getElementById("password-form").addEventListener("submit", async event 
   } catch (error) {
     showProfileMessage(error.message || "Could not update your password.", "error");
   } finally {
-    button.disabled = false;
+    updateProfilePasswordUI();
   }
 });
 
@@ -220,4 +284,5 @@ async function loadProfile() {
   }
 }
 
+updateProfilePasswordUI();
 loadProfile();

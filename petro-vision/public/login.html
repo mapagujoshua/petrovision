@@ -97,29 +97,40 @@
               <label for="signup-password">Choose a password</label>
               <div class="auth-input-wrap">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg>
-                <input type="password" id="signup-password" name="password" autocomplete="new-password" minlength="8" aria-describedby="signup-password-hint signup-password-error" required>
+                <input type="password" id="signup-password" name="password" autocomplete="new-password" minlength="8" maxlength="64" aria-describedby="signup-password-checklist signup-password-hint signup-password-error" required>
                 <button class="auth-password-toggle" type="button" data-password-toggle="signup-password" aria-label="Show password" aria-controls="signup-password" aria-pressed="false">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
               </div>
-              <p class="auth-field-error" id="signup-password-error"></p>
+              <p class="auth-field-error" id="signup-password-error" aria-live="polite"></p>
             </div>
-            <div class="auth-strength" id="password-strength" data-strength="0" aria-live="polite">
+            <ul class="auth-password-checklist" id="signup-password-checklist" aria-label="Password requirements" aria-live="polite" aria-relevant="text">
+              <li data-password-check="length"><span class="auth-check-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></span>8+ characters (max 64, no spaces)</li>
+              <li data-password-check="upper"><span class="auth-check-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></span>One uppercase letter</li>
+              <li data-password-check="lower"><span class="auth-check-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></span>One lowercase letter</li>
+              <li data-password-check="number"><span class="auth-check-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></span>One number</li>
+              <li data-password-check="special"><span class="auth-check-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></span>One special character</li>
+            </ul>
+            <div class="auth-strength" id="password-strength" data-strength="0" aria-live="polite" aria-atomic="true">
               <div class="auth-strength-bars" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-              <p class="auth-strength-hint" id="signup-password-hint">Use 8+ characters with a number</p>
+              <p class="auth-strength-hint" id="signup-password-hint">Password strength: Not entered</p>
             </div>
             <div class="auth-field">
               <label for="signup-confirm-password">Confirm password</label>
               <div class="auth-input-wrap">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg>
-                <input type="password" id="signup-confirm-password" name="confirm-password" autocomplete="new-password" aria-describedby="signup-confirm-password-error" required>
+                <input type="password" id="signup-confirm-password" name="confirm-password" autocomplete="new-password" maxlength="64" aria-describedby="signup-confirm-password-error signup-password-match" required>
                 <button class="auth-password-toggle" type="button" data-password-toggle="signup-confirm-password" aria-label="Show password" aria-controls="signup-confirm-password" aria-pressed="false">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
               </div>
-              <p class="auth-field-error" id="signup-confirm-password-error"></p>
+              <p class="auth-field-error" id="signup-confirm-password-error" aria-live="polite"></p>
+              <p class="auth-password-match" id="signup-password-match" hidden>
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg>
+                Passwords match
+              </p>
             </div>
-            <button type="submit" class="auth-submit" data-submit-label="Create Account">Create Account</button>
+            <button type="submit" class="auth-submit" data-submit-label="Create Account" disabled>Create Account</button>
           </form>
 
           <p class="auth-status" id="auth-status" role="status" aria-live="polite"></p>
@@ -144,6 +155,7 @@
 
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/password-validator.js"></script>
   <script src="js/auth.js"></script>
   <script>
     const themeToggle = document.getElementById("auth-theme-toggle");

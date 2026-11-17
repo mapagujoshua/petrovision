@@ -68,13 +68,30 @@
           </div>
           <div class="profile-field">
             <label for="new-password">New password</label>
-            <input id="new-password" name="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+            <input id="new-password" name="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="64" aria-describedby="profile-password-checklist profile-password-strength profile-new-password-error" required>
+            <p class="profile-field-error" id="profile-new-password-error" aria-live="polite"></p>
+            <ul class="profile-password-checklist" id="profile-password-checklist" aria-label="Password requirements" aria-live="polite" aria-relevant="text">
+              <li data-profile-password-check="length"><span class="profile-password-check-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></span>8+ characters (max 64, no spaces)</li>
+              <li data-profile-password-check="upper"><span class="profile-password-check-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></span>One uppercase letter</li>
+              <li data-profile-password-check="lower"><span class="profile-password-check-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></span>One lowercase letter</li>
+              <li data-profile-password-check="number"><span class="profile-password-check-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></span>One number</li>
+              <li data-profile-password-check="special"><span class="profile-password-check-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></span>One special character</li>
+            </ul>
+            <div class="profile-password-strength" id="profile-password-strength" data-strength="0" aria-live="polite" aria-atomic="true">
+              <div class="profile-password-strength-bars" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+              <p>Password strength: Not entered</p>
+            </div>
           </div>
           <div class="profile-field">
             <label for="confirm-password">Confirm new password</label>
-            <input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+            <input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" maxlength="64" aria-describedby="profile-confirm-password-error profile-password-match" required>
+            <p class="profile-field-error" id="profile-confirm-password-error" aria-live="polite"></p>
+            <p class="profile-password-match" id="profile-password-match" hidden>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg>
+              Passwords match
+            </p>
           </div>
-          <button class="profile-button profile-button-ghost" type="submit">Update password</button>
+          <button class="profile-button profile-button-ghost" type="submit" disabled>Update password</button>
         </form>
       </section>
 
@@ -152,6 +169,7 @@
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
   <script src="components/app-ui.js"></script>
+  <script src="js/password-validator.js"></script>
   <script src="js/profile.js"></script>
 </body>
 </html>

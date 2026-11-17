@@ -131,6 +131,126 @@
   font-size: 13px;
 }
 
+.profile-field-error {
+  margin: -2px 0 0;
+  color: var(--bad);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.profile-password-checklist {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  list-style: none;
+}
+
+.profile-password-checklist li {
+  display: flex;
+  min-height: 18px;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-password-check-icon {
+  display: inline-grid;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--text-muted);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.profile-password-check-icon::before {
+  content: "•";
+}
+
+.profile-password-check-icon svg,
+.profile-password-match svg {
+  display: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.profile-password-checklist li.is-met {
+  color: var(--good);
+}
+
+.profile-password-checklist li.is-met .profile-password-check-icon::before {
+  content: none;
+}
+
+.profile-password-checklist li.is-met .profile-password-check-icon svg {
+  display: block;
+}
+
+.profile-password-strength {
+  display: grid;
+  gap: 6px;
+}
+
+.profile-password-strength-bars {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.profile-password-strength-bars span {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.profile-password-strength[data-strength="1"] .profile-password-strength-bars span:nth-child(-n+1),
+.profile-password-strength[data-strength="2"] .profile-password-strength-bars span:nth-child(-n+2) {
+  background: var(--bad);
+}
+
+.profile-password-strength[data-strength="3"] .profile-password-strength-bars span:nth-child(-n+3) {
+  background: var(--warn);
+}
+
+.profile-password-strength[data-strength="4"] .profile-password-strength-bars span {
+  background: color-mix(in srgb, var(--good) 55%, var(--surface));
+}
+
+.profile-password-strength[data-strength="5"] .profile-password-strength-bars span {
+  background: var(--good);
+}
+
+.profile-password-strength p,
+.profile-password-match {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.profile-password-match {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--good);
+  font-weight: 600;
+}
+
+.profile-password-match svg {
+  display: block;
+}
+
+.profile-password-match[hidden] {
+  display: none;
+}
+
 .profile-button {
   display: inline-flex;
   min-height: 44px;

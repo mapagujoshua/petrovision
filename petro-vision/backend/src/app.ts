@@ -8,6 +8,7 @@ import jwt, { type JwtPayload } from "jsonwebtoken";
 import { z, ZodError } from "zod";
 import type { PriceReport, Role, User } from "./domain.js";
 import { firebase } from "./firebase.js";
+import { PASSWORD_POLICY_MESSAGE, validatePassword } from "./password-policy.js";
 import { createSession, createUser, deleteUserAccount, findUserByEmail, getAllUsers, getUser, hasSession, revokeSession, revokeUserSessions, saveUser } from "./auth-store.js";
 import { deleteRecord, loadCollection, loadMatchingRecords, loadOwnedRecords, loadRecord, saveRecord } from "./feature-store.js";
 import { auditLogs, availabilityReports, notifications, notificationSubscriptions, priceReports, refuels, redemptions, rewardAccounts, rewardRules, rewards, stations, trips, users, vehicles } from "./store.js";
@@ -256,7 +257,8 @@ app.get("/api/health", (_req, res) => res.json({ status: "ok", persistence: fire
 app.get("/", (_req, res) => res.json({ name: "PetroVision API", status: "ok", health: "/health", message: "Use the documented /api endpoints for API operations." }));
 
 app.post("/api/auth/register", async (req, res) => {
-  const input = validate(z.object({ email: z.email(), password: z.string().min(8), displayName: z.string().min(1).max(100) }), req.body);
+  const input = validate(z.object({ email: z.email(), password: z.string(), displayName: z.string().min(1).max(100) }), req.body);
+  if (!validatePassword(input.password).valid) return res.status(400).json({ error: PASSWORD_POLICY_MESSAGE });
   const email = input.email.toLowerCase();
   const isBootstrapAdmin = process.env.ADMIN_EMAIL?.toLowerCase() === email;
   const user: User = { id: randomUUID(), email, displayName: input.displayName, role: isBootstrapAdmin ? "admin" : "user", passwordHash: await bcrypt.hash(input.password, 10), suspended: false, createdAt: new Date().toISOString() };
@@ -342,8 +344,9 @@ app.get("/api/users/me/reports", authenticate, async (req, res) => {
 app.post("/api/users/me/password", authenticate, async (req, res) => {
   const input = validate(z.object({
     currentPassword: z.string().min(1),
-    newPassword: z.string().min(8).max(128)
+    newPassword: z.string()
   }), req.body);
+  if (!validatePassword(input.newPassword).valid) return res.status(400).json({ error: PASSWORD_POLICY_MESSAGE });
   const user = await getUser(req.auth!.userId);
   if (!user) return res.status(404).json({ error: "User not found" });
   if (!(await bcrypt.compare(input.currentPassword, user.passwordHash))) {

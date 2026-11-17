@@ -31,7 +31,10 @@ const fieldRules = {
   "login-password": { error: "login-password-error", message: "Enter your password." },
   "signup-fullname": { error: "signup-fullname-error", message: "Enter your full name." },
   "signup-email": { error: "signup-email-error", message: "Enter a valid email address." },
-  "signup-password": { error: "signup-password-error", message: "Use at least 8 characters." },
+  "signup-password": {
+    error: "signup-password-error",
+    message: "Use 8–64 characters, no spaces, and include upper/lowercase letters, a number, and a special character."
+  },
   "signup-confirm-password": { error: "signup-confirm-password-error", message: "Confirm your password." }
 };
 
@@ -40,7 +43,7 @@ function fieldIsValid(input) {
   if (input.id === "signup-fullname") return value.length > 0 && value.length <= 100;
   if (input.type === "email") return value.length > 0 && input.validity.valid;
   if (input.id === "login-password") return input.value.length > 0;
-  if (input.id === "signup-password") return input.value.length >= 8;
+  if (input.id === "signup-password") return validatePassword(input.value).valid;
   if (input.id === "signup-confirm-password") {
     return input.value.length > 0 && input.value === document.getElementById("signup-password").value;
   }
@@ -51,12 +54,14 @@ function validateField(input) {
   const rule = fieldRules[input.id];
   if (!rule) return true;
   const valid = fieldIsValid(input);
+  if (input.id === "signup-confirm-password") {
+    updatePasswordConfirmation(true);
+    return valid;
+  }
   const error = document.getElementById(rule.error);
   const message = input.id === "signup-fullname" && input.value.trim().length > 100
     ? "Name must be 100 characters or fewer."
-    : input.id === "signup-confirm-password" && input.value.length > 0
-      ? "Passwords do not match."
-      : rule.message;
+    : rule.message;
   input.setAttribute("aria-invalid", String(!valid));
   error.textContent = valid ? "" : message;
   return valid;
@@ -70,19 +75,56 @@ function validateForm(form) {
   return results.every(Boolean);
 }
 
+function updatePasswordConfirmation(showRequired = false) {
+  const password = document.getElementById("signup-password");
+  const confirmation = document.getElementById("signup-confirm-password");
+  const error = document.getElementById("signup-confirm-password-error");
+  const match = document.getElementById("signup-password-match");
+  const matches = confirmation.value.length > 0 && confirmation.value === password.value;
+
+  match.hidden = !matches;
+  if (matches) {
+    confirmation.removeAttribute("aria-invalid");
+    error.textContent = "";
+  } else if (confirmation.value.length > 0) {
+    confirmation.setAttribute("aria-invalid", "true");
+    error.textContent = "Passwords do not match";
+  } else if (showRequired) {
+    confirmation.setAttribute("aria-invalid", "true");
+    error.textContent = "Confirm your password.";
+  } else {
+    confirmation.removeAttribute("aria-invalid");
+    error.textContent = "";
+  }
+}
+
 function updatePasswordStrength() {
   const password = document.getElementById("signup-password").value;
+  const { checks } = validatePassword(password);
   const meter = document.getElementById("password-strength");
   const hint = document.getElementById("signup-password-hint");
-  const score = password.length === 0 ? 0 : Math.min(4, [
-    password.length >= 8,
-    /\d/.test(password),
-    /[A-Z]/.test(password) || /[^A-Za-z0-9]/.test(password),
-    password.length >= 12
-  ].filter(Boolean).length);
-  const labels = ["Use 8+ characters with a number", "Weak", "Fair", "Good", "Strong"];
+  const displayChecks = {
+    length: checks.length && checks.noSpaces,
+    upper: checks.upper,
+    lower: checks.lower,
+    number: checks.number,
+    special: checks.special
+  };
+  Object.entries(displayChecks).forEach(([name, met]) => {
+    const item = document.querySelector(`[data-password-check="${name}"]`);
+    item.classList.toggle("is-met", met);
+    item.setAttribute("aria-label", `${item.textContent.trim()}: ${met ? "met" : "not met"}`);
+  });
+
+  const score = Object.values(displayChecks).filter(Boolean).length;
+  const labels = ["Not entered", "Weak", "Weak", "Fair", "Good", "Strong"];
   meter.dataset.strength = String(score);
-  hint.textContent = score === 0 ? labels[0] : `Password strength: ${labels[score]}. Use 8+ characters with a number.`;
+  hint.textContent = `Password strength: ${password.length ? labels[score] : labels[0]}`;
+  updatePasswordConfirmation();
+  document.getElementById("signup-form").querySelector('button[type="submit"]').disabled =
+    !validatePassword(password).valid
+    || !document.getElementById("signup-confirm-password").value
+    || password !== document.getElementById("signup-confirm-password").value;
 }
 
 function clearFieldErrors() {
@@ -91,6 +133,7 @@ function clearFieldErrors() {
     input.removeAttribute("aria-invalid");
     document.getElementById(fieldRules[id].error).textContent = "";
   });
+  document.getElementById("signup-password-match").hidden = true;
 }
 
 function showTab(which) {
@@ -110,10 +153,18 @@ function showTab(which) {
   banner.textContent = "";
   authStatus.textContent = "";
   clearFieldErrors();
+  updatePasswordStrength();
 }
 
 tabLogin.addEventListener("click", () => showTab("login"));
 tabSignup.addEventListener("click", () => showTab("signup"));
+signupForm.addEventListener("keydown", event => {
+  const passwordInput = document.getElementById("signup-password");
+  if (event.key !== "Enter" || event.isComposing || validatePassword(passwordInput.value).valid) return;
+  event.preventDefault();
+  validateField(passwordInput);
+  passwordInput.focus();
+});
 authTabs.addEventListener("keydown", event => {
   const tabs = [tabLogin, tabSignup];
   const currentIndex = tabs.indexOf(document.activeElement);
@@ -135,9 +186,9 @@ document.querySelectorAll(".auth-field input").forEach(input => {
     if (input.id === "signup-password") {
       updatePasswordStrength();
       const confirmation = document.getElementById("signup-confirm-password");
-      if (confirmation.value && confirmation.hasAttribute("aria-invalid")) validateField(confirmation);
+      if (confirmation.value) updatePasswordConfirmation();
     }
-    if (input.id === "signup-confirm-password" && input.hasAttribute("aria-invalid")) validateField(input);
+    if (input.id === "signup-confirm-password") updatePasswordStrength();
   });
 });
 
@@ -160,12 +211,13 @@ function setFormBusy(form, busy, loadingText) {
   } else {
     submit.textContent = submit.dataset.submitLabel;
     submit.removeAttribute("aria-busy");
+    if (form === signupForm) updatePasswordStrength();
   }
 }
 
 function showAuthError(error) {
   const message = error?.message === "Invalid email or password"
-    ? "Incorrect email or password"
+    ? "Incorrect email or password."
     : error?.message || "We couldn't complete your request. Please try again.";
   banner.textContent = message;
   banner.hidden = false;
@@ -198,7 +250,13 @@ loginForm.addEventListener("submit", async function (event) {
 
 signupForm.addEventListener("submit", async function (event) {
   event.preventDefault();
-  if (signupForm.querySelector('button[type="submit"]').disabled) return;
+  if (signupForm.querySelector('button[type="submit"]').getAttribute("aria-busy") === "true") return;
+  const passwordInput = document.getElementById("signup-password");
+  if (!validatePassword(passwordInput.value).valid) {
+    validateField(passwordInput);
+    passwordInput.focus();
+    return;
+  }
   if (!validateForm(signupForm)) return;
   const fullName = document.getElementById("signup-fullname").value.trim();
   const email = document.getElementById("signup-email").value.trim();
