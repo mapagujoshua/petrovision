@@ -149,15 +149,31 @@ button {
 .home-navbar .logo,
 .footer-logo {
   flex: 0 0 auto;
-  color: var(--on-navy);
-  font-size: 20px;
+  color: var(--logo-base);
+  font-size: 24px;
   font-weight: 800;
-  letter-spacing: .01em;
+  letter-spacing: -.01em;
 }
 
-.home-navbar .logo span,
-.footer-logo span {
-  color: inherit;
+.home-navbar .logo {
+  --logo-base: var(--surface);
+}
+
+.footer-logo {
+  --logo-base: var(--navy);
+  font-size: 20px;
+}
+
+.logo-accent {
+  color: var(--accent) !important;
+}
+
+[data-theme="dark"] .home-navbar .logo {
+  --logo-base: var(--text);
+}
+
+[data-theme="dark"] .footer-logo {
+  --logo-base: var(--text);
 }
 
 .home-navbar .nav-links {
@@ -1511,15 +1527,6 @@ button {
   border-top: 1px solid var(--border);
   color: var(--text-muted);
   background: transparent;
-}
-
-.footer-logo {
-  color: var(--navy);
-  font-size: 17px;
-}
-
-[data-theme="dark"] .footer-logo {
-  color: var(--text);
 }
 
 [data-theme="dark"] .contact-confirmation > svg {

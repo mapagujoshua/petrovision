@@ -7,6 +7,7 @@
   --text: #0F2236;
   --text-muted: #5B6676;
   --navy: #0E2A47;
+  --logo-base: var(--navy);
   --accent: #F47B20;
   --accent-hover: #DB6A12;
   --accent-text: #FFFFFF;
@@ -75,6 +76,7 @@
   --text: #E8EEF5;
   --text-muted: #9AA9BB;
   --navy: #9CC8F0;
+  --logo-base: var(--text);
   --accent: #FF8A3D;
   --accent-hover: #FFA05F;
   --accent-text: #1A0E00;
@@ -123,6 +125,32 @@ body {
   font-size: var(--text-16);
   line-height: 1.55;
   transition: background-color 180ms ease-out, color 180ms ease-out;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: baseline;
+  color: var(--logo-base);
+  font-family: var(--font-heading);
+  font-weight: 800;
+  letter-spacing: -.01em;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.logo .logo-accent {
+  color: var(--accent);
+}
+
+.logo--sm { font-size: 20px; }
+.logo--md { font-size: 24px; }
+.logo--lg { font-size: 32px; }
+
+.logo:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 2px;
 }
 
 h1,

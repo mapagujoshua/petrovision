@@ -45,10 +45,13 @@
 
   function updateThemeToggle() {
     const toggle = document.getElementById("pv-theme-toggle");
-    if (!toggle) return;
+    const authToggle = document.getElementById("auth-theme-toggle");
+    if (!toggle && !authToggle) return;
     const isDark = document.documentElement.dataset.theme === "dark";
-    toggle.setAttribute("aria-pressed", String(isDark));
-    toggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+    [toggle, authToggle].filter(Boolean).forEach(button => {
+      button.setAttribute("aria-pressed", String(isDark));
+      button.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+    });
   }
 
   function applyThemePreference(preference, persist = true) {
@@ -131,8 +134,8 @@
     return `
       <header class="pv-nav-shell">
         <div class="pv-nav-inner">
-          <a class="pv-nav-logo" href="map.html" aria-label="PetroVision Map">
-            Petro<span>Vision</span>
+          <a class="logo logo--md pv-nav-logo" href="map.html" aria-label="PetroVision home">
+            Petro<span class="logo-accent">Vision</span>
           </a>
           <nav class="pv-nav-primary" aria-label="Main navigation">
             ${primaryLinks}

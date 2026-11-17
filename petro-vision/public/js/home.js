@@ -125,6 +125,9 @@ function updateNavigation() {
   const loggedIn = Boolean(session?.accessToken && session?.user);
   const accountLink = document.getElementById("account-link");
   const footerAccountLink = document.getElementById("footer-account-link");
+  document.querySelectorAll(".home-logo").forEach(link => {
+    link.href = loggedIn ? "map.html" : "home.html";
+  });
   const rewardsNav = document.getElementById("rewards-nav");
   const contributeLink = document.getElementById("contribute-link");
   const reportIssueLink = document.getElementById("report-issue-link");

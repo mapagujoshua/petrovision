@@ -53,10 +53,10 @@
 
 #app-nav .pv-nav-logo {
   flex: 0 0 auto;
-  color: var(--pv-navy);
-  font-size: 20px;
+  color: var(--logo-base);
+  font-size: 24px;
   font-weight: 800;
-  letter-spacing: -.03em;
+  letter-spacing: -.01em;
   text-decoration: none;
 }
 
@@ -64,7 +64,7 @@ html[data-theme="dark"] #app-nav .pv-nav-logo {
   color: var(--pv-text);
 }
 
-#app-nav .pv-nav-logo span {
+#app-nav .pv-nav-logo .logo-accent {
   color: var(--pv-accent);
 }
 
@@ -419,10 +419,6 @@ html[data-theme="dark"] #app-nav .pv-drawer-link.is-active {
 @media (max-width: 520px) {
   #app-nav .pv-nav-inner {
     padding-inline: 12px;
-  }
-
-  #app-nav .pv-nav-logo {
-    font-size: 18px;
   }
 
   #app-nav .pv-nav-drawer-inner {
